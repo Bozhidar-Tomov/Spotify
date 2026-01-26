@@ -1,0 +1,86 @@
+plugins {
+    id 'java'
+    id 'checkstyle'
+    id 'jacoco'
+}
+
+group = 'com.spotify'
+version = '1.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+    main { java { srcDirs = ['src'] } }
+    test { java { srcDirs = ['test'] } }
+}
+
+configurations {
+    mockitoAgent
+}
+
+dependencies {
+    def junitVersion = '6.0.1'
+    def mockitoVersion = '5.20.0'
+
+    testImplementation platform("org.junit:junit-bom:${junitVersion}")
+    testImplementation "org.junit.jupiter:junit-jupiter-api"
+    testImplementation "org.junit.jupiter:junit-jupiter-params"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+
+    // Mockito Dependencies
+    testImplementation "org.mockito:mockito-core:${mockitoVersion}"
+    testImplementation "org.mockito:mockito-junit-jupiter:${mockitoVersion}"
+
+    // MockitoAgent 'net.bytebuddy:byte-buddy-agent:1.18.2'
+    mockitoAgent "org.mockito:mockito-core:${mockitoVersion}"
+}
+
+tasks.named('test', Test) {
+    useJUnitPlatform()
+    
+    failFast = true
+    failOnNoDiscoveredTests = true
+
+    if (project.configurations.findByName('mockitoAgent')) {
+        jvmArgs += "-javaagent:${configurations.mockitoAgent.asPath}"
+    }
+    
+    testLogging {
+        events "passed", "skipped", "failed"
+        showExceptions = true
+        exceptionFormat = "full"
+        showStackTraces = true
+    }
+}
+
+tasks.named('jacocoTestReport', JacocoReport) {
+    dependsOn test
+
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+tasks.named('check') {
+    dependsOn jacocoTestReport
+}
+
+checkstyle {
+    toolVersion = '12.2.0'
+    ignoreFailures = false
+}
+
+jacoco {
+    toolVersion = "0.8.14"
+}
+
