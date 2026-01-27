@@ -20,7 +20,7 @@ public class ClientMain {
                 Scanner scanner = new Scanner(System.in)) {
 
             System.out.println("---------------------------" + System.lineSeparator() +
-                               "| Spotify Music streaming |" + System.lineSeparator() +
+                               "| Spotify Music Streaming |" + System.lineSeparator() +
                                "---------------------------");
 
             socketChannel.connect(new InetSocketAddress(HOST_NAME, SERVER_PORT));
