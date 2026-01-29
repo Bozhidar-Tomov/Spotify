@@ -13,29 +13,29 @@ import java.time.Instant;
 
 public class SpotifySystem {
     private static final short TIMEOUT = 1200;
-    private static final int SAVE_INTERVAL = 5;
+    private static final int SAVE_INTERVAL = 90;
     private static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
-    
+
     private static SpotifySystem INSTANCE = null;
     private final Map<String, UserEntity> usersByEmail = new ConcurrentHashMap<>();
-    
+
     private ScheduledExecutorService scheduler;
     private ExecutorService networkExecutor;
 
-    private SpotifySystem() {      
+    private SpotifySystem() {
     }
 
-    public static synchronized SpotifySystem getInstance() {
-        if (INSTANCE == null) {
-            INSTANCE = new SpotifySystem();
+    public static SpotifySystem getInstance() {
+        synchronized (SpotifySystem.class) {
+            if (INSTANCE == null) {
+                INSTANCE = new SpotifySystem();
+            }
         }
-
         return INSTANCE;
     }
 
-
     public void start(int port) throws IOException {
-        System.out.println("SpotifySystem: Booting server...");
+        System.out.println("SpotifySystem: Booting system...");
         try {
             loadData();
         } catch (IOException e) {
@@ -53,7 +53,7 @@ public class SpotifySystem {
     public void loadData() throws IOException {
         System.out.println("SpotifySystem: Loading data from files...");
         DataManager.loadUsers(usersByEmail);
-        throw new IOException();
+        // throw new IOException("TEST EXC");
         // TODO
     }
 
@@ -64,7 +64,7 @@ public class SpotifySystem {
                     try {
                         saveData();
                         System.out.println("SpotifySystem: Periodic safe at " + Instant.now());
-                    } catch (Exception e) {
+                    } catch (IOException e) {
                         System.err.println("SpotifySystem: Failed to auto-save data: " + e.getMessage());
                     }
                 },
@@ -77,7 +77,7 @@ public class SpotifySystem {
     public void saveData() throws IOException {
         System.out.println("SpotifySystem: Saving data to files...");
         DataManager.saveUsers(usersByEmail);
-        throw new IOException();
+        throw new IOException("TEST EXC");
         // TODO:
     }
 

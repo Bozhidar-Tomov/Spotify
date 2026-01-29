@@ -33,7 +33,7 @@ public class ServerMain {
 
         System.out.println("Type 'QUIT' to shut down the server.");
 
-        try (Scanner scanner = new java.util.Scanner(System.in)) {
+        try (Scanner scanner = new Scanner(System.in)) {
             while (scanner.hasNextLine()) {
                 String input = scanner.nextLine();
                 if (input.equalsIgnoreCase("QUIT")) {

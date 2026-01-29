@@ -49,13 +49,15 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
     }
 
     private void setup() throws IOException {
+        System.out.println("NIO server starting...");
+        // throw new IOException("TEST NIO EXC");
         selector = Selector.open();
-
+        
         serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.bind(new InetSocketAddress(SERVER_HOST, port));
         serverSocketChannel.configureBlocking(false);
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-
+        
         System.out.println("NIO server started on " + SERVER_HOST + ":" + port);
     }
 
@@ -141,7 +143,7 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
             if (executor != null) {
                 executor.close();
             }
-            System.out.println("Executor stopped.");
+            System.out.println("Client handler stopped.");
         } catch (Exception e) {
             Thread.currentThread().interrupt();
         }
