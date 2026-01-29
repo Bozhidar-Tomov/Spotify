@@ -1,47 +1,46 @@
 package bg.sofia.uni.fmi.mjt.spotify.server;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-
-import bg.sofia.uni.fmi.mjt.spotify.server.net.ServerDispatcher;
+import java.io.IOException;
+import java.util.Scanner;
 
 public class ServerMain {
-    private static final short TIMEOUT = 1200;
+    private final SpotifySystem system;
     private final int port;
-
-    private ExecutorService managerThread;
 
     public ServerMain(int port) {
         this.port = port;
+        this.system = SpotifySystem.getInstance();
     }
 
-    public void start() {
-        System.out.println("Server booting...");
-        managerThread = Executors.newSingleThreadExecutor();
-        managerThread.execute(new ServerDispatcher(port));
+    public void start() throws IOException {
+        system.start(port);
     }
 
     public void stop() {
-        System.out.println("Server shutdown...");
-        if (managerThread == null) {
-            return;
-        }
-
-        managerThread.shutdown();
-        try {
-            if (!managerThread.awaitTermination(TIMEOUT, TimeUnit.MILLISECONDS)) {
-                managerThread.shutdownNow();
-            }
-        } catch (InterruptedException e) {
-            managerThread.shutdownNow();
-        }
+        system.stop();
     }
 
     public static void main(String[] args) {
-        Thread.currentThread().setName("Main Server Thread");
+        Thread.currentThread().setName("Server Host Thread");
+
         ServerMain server = new ServerMain(7777);
-        server.start();
-        server.stop();
+        try {
+            server.start();
+        } catch (Exception e) {
+            System.err.println("Error: cannot start system.");
+            return;
+        }
+
+        System.out.println("Type 'QUIT' to shut down the server.");
+
+        try (Scanner scanner = new java.util.Scanner(System.in)) {
+            while (scanner.hasNextLine()) {
+                String input = scanner.nextLine();
+                if (input.equalsIgnoreCase("QUIT")) {
+                    break;
+                }
+            }
+            server.stop();
+        }
     }
 }

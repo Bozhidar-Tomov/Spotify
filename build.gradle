@@ -29,6 +29,7 @@ configurations {
 dependencies {
     def junitVersion = '6.0.1'
     def mockitoVersion = '5.20.0'
+    def gsonVersion = '2.13.2'
 
     testImplementation platform("org.junit:junit-bom:${junitVersion}")
     testImplementation "org.junit.jupiter:junit-jupiter-api"
@@ -42,6 +43,8 @@ dependencies {
 
     // MockitoAgent 'net.bytebuddy:byte-buddy-agent:1.18.2'
     mockitoAgent "org.mockito:mockito-core:${mockitoVersion}"
+
+    implementation "com.google.code.gson:gson:${gsonVersion}"
 }
 
 tasks.named('test', Test) {

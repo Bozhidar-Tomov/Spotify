@@ -1,5 +1,6 @@
 package bg.sofia.uni.fmi.mjt.spotify.server.net;
 
+import bg.sofia.uni.fmi.mjt.spotify.server.SpotifySystem;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -20,9 +21,11 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
     private ServerSocketChannel serverSocketChannel;
     private ExecutorService executor;
     private Selector selector;
+    private final SpotifySystem system;
 
-    public ServerDispatcher(int port) {
+    public ServerDispatcher(int port, SpotifySystem system) {
         this.port = port;
+        this.system = system;
         executor = Executors.newVirtualThreadPerTaskExecutor();
     }
 
@@ -79,7 +82,6 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
                 } else if (key.isReadable()) {
                     readClientRequest(key);
                 }
-
             }
         }
     }
@@ -103,7 +105,7 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
         key.interestOps(0);
 
         try {
-            executor.execute(new ClientHandler(key));
+            executor.execute(new ClientHandler(key, system));
 
         } catch (Exception e) {
             System.err.println("Failed to process client: " + e.getMessage());
