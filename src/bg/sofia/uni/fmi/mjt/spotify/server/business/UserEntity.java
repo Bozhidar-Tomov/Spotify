@@ -10,22 +10,22 @@ import java.util.Set;
 
 public class UserEntity implements Serializable {
     private final String email;
-    private final byte[] passwordHash;
+    private final Password password;
     private final Set<String> playlistIds;
     
-    private UserEntity(String email, byte[] passwordHash, Set<String> playlistIds) {
+    private UserEntity(String email, Password password, Set<String> playlistIds) {
         this.email = email;
-        this.passwordHash = passwordHash;
+        this.password = password;
         this.playlistIds = new HashSet<>(playlistIds);
     }
 
-    public UserEntity(String email, byte[] passwordHash) {
-        if (email == null || passwordHash == null) {
+    public UserEntity(String email, Password password) {
+        if (email == null || password == null) {
             throw new IllegalArgumentException("User email or password cannot be null.");
         }
 
         this.email = email;
-        this.passwordHash = passwordHash;
+        this.password = password;
         this.playlistIds = new HashSet<>();
     }
 
@@ -33,8 +33,8 @@ public class UserEntity implements Serializable {
         return email;
     }
     
-    public byte[] passwordHash() {
-        return passwordHash.clone();
+    public Password password() {
+        return password;
     }
 
     public Set<String> playlistIds() {
@@ -53,8 +53,8 @@ public class UserEntity implements Serializable {
         return new UserDTO(email, playlistIds);
     }
 
-    public static UserEntity fromDTO(UserDTO dto, byte[] passwordHash) {
-        return new UserEntity(dto.email(), passwordHash, dto.playlistIds());
+    public static UserEntity fromDTO(UserDTO dto, Password password) {
+        return new UserEntity(dto.email(), password, dto.playlistIds());
     }
 
     @Override

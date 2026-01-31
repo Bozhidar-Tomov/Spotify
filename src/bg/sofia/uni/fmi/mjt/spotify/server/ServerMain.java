@@ -1,6 +1,5 @@
 package bg.sofia.uni.fmi.mjt.spotify.server;
 
-import java.io.IOException;
 import java.util.Scanner;
 
 public class ServerMain {
@@ -12,7 +11,7 @@ public class ServerMain {
         this.system = SpotifySystem.getInstance();
     }
 
-    public void start() throws IOException {
+    public void start() throws Exception {
         system.start(port);
     }
 

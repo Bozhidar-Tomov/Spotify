@@ -1,6 +1,6 @@
 package bg.sofia.uni.fmi.mjt.spotify.common.exceptions;
 
-public class UnknownCommandException extends RuntimeException {
+public class UnknownCommandException extends SpotifyException {
     public UnknownCommandException(String message) {
         super(message);
     }

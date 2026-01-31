@@ -1,38 +1,62 @@
 package bg.sofia.uni.fmi.mjt.spotify.client;
 
-import java.io.BufferedReader;
-import java.io.PrintWriter;
-import java.net.InetSocketAddress;
-import java.nio.channels.Channels;
-import java.nio.channels.SocketChannel;
 import java.util.Scanner;
 
+import bg.sofia.uni.fmi.mjt.spotify.client.view.ConsoleMenu;
+
 public class ClientMain {
-    private static final String HOST_NAME = "localhost";
-    private static final short SERVER_PORT = 7777;
+    private final SpotifyClient system;
+    private final int port;
+
+    ClientMain(int port) {
+        this.port = port;
+        this.system = new SpotifyClient();
+    }
 
     public static void main(String[] args) {
-        Thread.currentThread().setName("Client Thread");
+        ClientMain client = new ClientMain(7777);
+        client.start();
+    }
 
-        try (SocketChannel socketChannel = SocketChannel.open();
-                BufferedReader reader = new BufferedReader(Channels.newReader(socketChannel, "UTF-8"));
-                PrintWriter writer = new PrintWriter(Channels.newWriter(socketChannel, "UTF-8"), true);
-                Scanner scanner = new Scanner(System.in)) {
+    public void start() {
+        System.out.println("Starting...");
 
-            System.out.println("---------------------------" + System.lineSeparator() +
-                               "| Spotify Music Streaming |" + System.lineSeparator() +
-                               "---------------------------");
-
-            socketChannel.connect(new InetSocketAddress(HOST_NAME, SERVER_PORT));
-                    
-            System.out.println("Connected to the server.");
-
-            while (true) {
-                
-            }
-            
+        try {
+            system.start(port);
+        } catch (IllegalArgumentException e) {
+            System.err.println("Invalid configuration: " + e.getMessage());
+            return;
         } catch (Exception e) {
-            System.err.println("Problem with network communication: " + e.getMessage());
+            System.err.println("Error: Cannot start system: " + e.getMessage());
+            return;
+        }
+
+        ConsoleMenu.displayHeader();
+
+        try (Scanner scanner = new Scanner(System.in)) {
+            while (true) {
+                System.out.print("> ");
+                String message = scanner.nextLine().strip();
+
+                if (message.isEmpty()) {
+                    continue;
+                }
+
+                if (message.equalsIgnoreCase("disconnect")) {
+                    break;
+                }
+
+                if (message.equalsIgnoreCase("help")) {
+                    ConsoleMenu.displayCommands();
+                    continue;
+                }
+                system.getUserInput(message);
+            }
+        } catch (Exception e) {
+            System.err.println("An unexpected error occurred during input: " + e.getMessage());
+        } finally {
+            System.out.println("Shutting down...");
+            system.stop();
         }
     }
 }

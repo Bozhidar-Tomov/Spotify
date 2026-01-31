@@ -1,20 +1,21 @@
 package bg.sofia.uni.fmi.mjt.spotify.server;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
+import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Map;
 
-import com.google.gson.Gson;
+// import com.google.gson.Gson;
 
 import bg.sofia.uni.fmi.mjt.spotify.server.business.UserEntity;
-import bg.sofia.uni.fmi.mjt.spotify.server.business.UserEntityWrapper;
 
 public final class DataManager {
-    private static final Gson gson = new Gson();
+    // private static final Gson gson = new Gson();
     private static final Path ROOT_DATA_DIR = Path.of("src", "bg", "sofia", "uni", "fmi", "mjt", "spotify", "data");
     private static final Path USERS_FILE = ROOT_DATA_DIR.resolve("users").resolve("activeUsers.json");
     // private static final Path PLAYLISTS_FILE = ROOT_DATA_DIR.resolve("playlists").resolve("playlists.json");
@@ -23,25 +24,34 @@ public final class DataManager {
     private DataManager() {
         throw new IllegalStateException("Utility class: do not instantiate.");
     }
-
-    public static void loadUsers(Map<String, UserEntity> usersByEmail) throws IOException {
-        if (usersByEmail == null) {
-            throw new IllegalArgumentException("Target map cannot be null");
-        }
-
+    
+    public static void loadUsers(Map<String, UserEntity> usersByEmail) throws IOException, ClassNotFoundException {
+        if (usersByEmail == null) throw new IllegalArgumentException("Target map cannot be null");
+    
         if (!Files.exists(USERS_FILE)) {
-            Files.createFile(USERS_FILE);
-            return;
+            return; 
         }
 
-        try (BufferedReader reader = Files.newBufferedReader(USERS_FILE)) {
-            UserEntityWrapper data = gson.fromJson(reader, UserEntityWrapper.class);
-
-            if (data == null || data.usersByEmail() == null) {
-                throw new IOException("User data file malformed or empty.");
+        try (InputStream fis = Files.newInputStream(USERS_FILE);
+            BufferedInputStream bis = new BufferedInputStream(fis);
+                ObjectInputStream ois = new ObjectInputStream(bis)) {
+            
+            //BUG: not secure
+            Object data = ois.readObject();
+            
+            if (data instanceof Map<?, ?> loadedMap) {
+                for (Map.Entry<?, ?> entry : loadedMap.entrySet()) {
+                    if (entry.getKey() instanceof String email && entry.getValue() instanceof UserEntity user) {
+                        if (
+                            email == null ||
+                            user.email() == null ||
+                            user.password() == null) {
+                            throw new IOException("Data corrupted - null fields.");
+                        }
+                        usersByEmail.put(email, user);
+                    }
+                }
             }
-
-            usersByEmail.putAll(data.usersByEmail());   
         }
     }
     
@@ -59,13 +69,13 @@ public final class DataManager {
         
         Files.createDirectories(USERS_FILE.getParent());
 
-        UserEntityWrapper wrapper = new UserEntityWrapper(usersByEmail);
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                ObjectOutputStream oos = new ObjectOutputStream(bos)) {
 
-        try (BufferedWriter writer = Files.newBufferedWriter(USERS_FILE,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.WRITE,
-                StandardOpenOption.TRUNCATE_EXISTING)) {
-            gson.toJson(wrapper, writer);
+            oos.writeObject(usersByEmail);
+            byte[] allBytes = bos.toByteArray();
+
+            Files.write(USERS_FILE, allBytes);
         }
     }
     
