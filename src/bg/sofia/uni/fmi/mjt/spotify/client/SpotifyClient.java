@@ -11,7 +11,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import bg.sofia.uni.fmi.mjt.spotify.client.net.ServerListener;
-import bg.sofia.uni.fmi.mjt.spotify.common.UserDTO;
+import bg.sofia.uni.fmi.mjt.spotify.common.models.UserDTO;
 
 public class SpotifyClient {
     private static final String HOST_NAME = "localhost";
@@ -42,7 +42,7 @@ public class SpotifyClient {
         writer = new PrintWriter(Channels.newWriter(socketChannel, StandardCharsets.UTF_8), true);
 
         executorListener = Executors.newSingleThreadExecutor();
-        executorListener.execute(new ServerListener(reader));
+        executorListener.execute(new ServerListener(reader, this));
 
         System.out.println("Connected.");
         // connects to server
@@ -71,6 +71,14 @@ public class SpotifyClient {
 
         System.out.println("Disconnected.");
     };
+
+    public void setUser(UserDTO user) {
+        this.user = user;
+    }
+
+    public UserDTO getUser() {
+        return user;
+    }
 
     public void getUserInput(String message) {
         if (writer == null) {

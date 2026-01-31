@@ -1,4 +1,4 @@
-package bg.sofia.uni.fmi.mjt.spotify.common;
+package bg.sofia.uni.fmi.mjt.spotify.common.models;
 
 import java.io.Serializable;
 import java.util.Collections;

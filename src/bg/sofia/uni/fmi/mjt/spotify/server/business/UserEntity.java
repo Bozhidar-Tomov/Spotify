@@ -1,12 +1,12 @@
 package bg.sofia.uni.fmi.mjt.spotify.server.business;
 
-import bg.sofia.uni.fmi.mjt.spotify.common.UserDTO;
-
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+
+import bg.sofia.uni.fmi.mjt.spotify.common.models.UserDTO;
 
 public class UserEntity implements Serializable {
     private final String email;

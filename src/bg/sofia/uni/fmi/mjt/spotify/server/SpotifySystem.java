@@ -13,10 +13,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.time.Instant;
 
-import bg.sofia.uni.fmi.mjt.spotify.common.UserDTO;
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.AuthenticationException;
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.InternalSystemException;
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.ValidationException;
+import bg.sofia.uni.fmi.mjt.spotify.common.models.Playlist;
+import bg.sofia.uni.fmi.mjt.spotify.common.models.UserDTO;
 
 public final class SpotifySystem {
     private static final short TIMEOUT = 1200;
@@ -25,6 +26,7 @@ public final class SpotifySystem {
 
     private static SpotifySystem INSTANCE = null;
     private final Map<String, UserEntity> usersByEmail = new ConcurrentHashMap<>();
+    private final Map<String, Playlist> playlistsByEmail = new ConcurrentHashMap<>();
 
     private ScheduledExecutorService scheduler;
     private ExecutorService networkExecutor;
@@ -41,7 +43,7 @@ public final class SpotifySystem {
         return INSTANCE;
     }
 
-    public void registerUser(String email, String password) {
+    public UserDTO registerUser(String email, String password) {
         if (email == null || password == null || email.isBlank() || password.isBlank()) {
             throw new ValidationException("Email and password cannot be null or empty.");
         }
@@ -52,7 +54,9 @@ public final class SpotifySystem {
 
         try {
             Password hashed = PasswordHandler.hashPassword(password);
-            usersByEmail.put(email, new UserEntity(email, hashed));
+            UserEntity newUser = new UserEntity(email, hashed);
+            usersByEmail.put(email, newUser);
+            return newUser.toDTO();
         } catch (Exception e) {
             throw new InternalSystemException("Cannot hash password", e);
         }
@@ -75,7 +79,7 @@ public final class SpotifySystem {
         } catch (Exception e) {
             throw new InternalSystemException("Cannot execute login.", e);
         }
-        
+
         return user.toDTO();
     }
 
@@ -97,9 +101,7 @@ public final class SpotifySystem {
     }
 
     public void loadData() throws Exception {
-        DataManager.loadUsers(usersByEmail);
-        // throw new IOException("TEST EXC");
-        // TODO
+        DataManager.load(usersByEmail, playlistsByEmail);
     }
 
     private void startPeriodicSave() {
@@ -109,7 +111,7 @@ public final class SpotifySystem {
                     try {
                         System.out.println("SpotifySystem: Saving data to files...");
                         saveData();
-                        System.out.println("SpotifySystem: Periodic safe at " + Instant.now());
+                        System.out.println("SpotifySystem: Periodic save at " + Instant.now());
                     } catch (IOException e) {
                         System.err.println("SpotifySystem: Failed to auto-save data: " + e.getMessage());
                     }
@@ -121,9 +123,7 @@ public final class SpotifySystem {
     }
 
     public void saveData() throws IOException {
-        DataManager.saveUsers(usersByEmail);
-        throw new IOException("TEST EXC");
-        // TODO:
+        DataManager.save(usersByEmail, playlistsByEmail);
     }
 
     public void stop() {
