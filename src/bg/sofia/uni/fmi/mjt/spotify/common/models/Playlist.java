@@ -5,41 +5,41 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class Playlist implements Serializable{
+public class Playlist implements Serializable {
     private String name;
-    private String ownerEmail; // acts as ID
-    private List<String> songIds;
+    private String ownerEmail;
+    private List<String> trackIds;
 
     public Playlist(String name, String creatorEmail) {
         this.name = name;
         this.ownerEmail = creatorEmail;
-        this.songIds = new ArrayList<>();
+        this.trackIds = new ArrayList<>();
     }
-        
+
     public String name() {
         return name;
     }
-    
+
     public String ownerEmail() {
         return ownerEmail;
     }
-        
-    public List<String> songIds() {
-        return songIds;
+
+    public List<String> trackIds() {
+        return List.copyOf(trackIds);
     }
-        
+
     public void setName(String name) {
         if (name != null && !this.name.equals(name)) {
             this.name = name;
         }
     }
 
-    public void addSong(String songId) {
-        //TODO: check if song with that id exists
-        if (songId == null) {
-            throw new IllegalArgumentException("SongID should not be null");
+    public void addTrack(String trackId) {
+        // TODO: check if track with that id exists
+        if (trackId == null) {
+            throw new IllegalArgumentException("trackID should not be null");
         }
-        this.songIds.add(songId);
+        this.trackIds.add(trackId);
     }
 
     @Override
@@ -53,7 +53,7 @@ public class Playlist implements Serializable{
         Playlist playlist = (Playlist) o;
         return Objects.equals(ownerEmail, playlist.ownerEmail);
     }
-    
+
     @Override
     public int hashCode() {
         return Objects.hash(ownerEmail);

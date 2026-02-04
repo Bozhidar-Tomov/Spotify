@@ -1,6 +1,5 @@
 package bg.sofia.uni.fmi.mjt.spotify.client;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.InetSocketAddress;
@@ -10,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import bg.sofia.uni.fmi.mjt.spotify.client.net.ServerListener;
+import bg.sofia.uni.fmi.mjt.spotify.client.net.ResponseHandler;
 import bg.sofia.uni.fmi.mjt.spotify.common.models.UserDTO;
 
 public class SpotifyClient {
@@ -18,8 +17,6 @@ public class SpotifyClient {
     private UserDTO user = null;
 
     private SocketChannel socketChannel;
-    private BufferedReader reader;
-    // TODO: switch to bufferedwriter
     private PrintWriter writer;
     private ExecutorService executorListener;
 
@@ -38,11 +35,10 @@ public class SpotifyClient {
             throw e;
         }
 
-        reader = new BufferedReader(Channels.newReader(socketChannel, StandardCharsets.UTF_8));
         writer = new PrintWriter(Channels.newWriter(socketChannel, StandardCharsets.UTF_8), true);
 
         executorListener = Executors.newSingleThreadExecutor();
-        executorListener.execute(new ServerListener(reader, this));
+        executorListener.execute(new ResponseHandler(socketChannel));
 
         System.out.println("Connected.");
         // connects to server
@@ -58,9 +54,6 @@ public class SpotifyClient {
             }
             if (socketChannel != null) {
                 socketChannel.close();
-            }
-            if (reader != null) {
-                reader.close();
             }
             if (writer != null) {
                 writer.close();

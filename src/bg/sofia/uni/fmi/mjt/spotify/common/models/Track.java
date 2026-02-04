@@ -1,40 +1,34 @@
 package bg.sofia.uni.fmi.mjt.spotify.common.models;
 
 import java.io.Serializable;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class Track implements Serializable{
     private final SongMetadata metadata;
-    private long playCount;
+    private AtomicLong playCount;
 
     public Track(SongMetadata metadata) {
         this.metadata = metadata;
-        this.playCount = 0;
+        this.playCount = new AtomicLong(0);
     }
 
-    public String id() {
-        return metadata.id();
-    }
-    public String title() {
-        return metadata.title();
+    public SongMetadata metadata() {
+        return this.metadata;
     }
 
-    public String artist() {
-        return metadata.artist();
-    }
-
-    public long playCount() {
+    public AtomicLong playCount() {
         return playCount;
     }
 
     public void incrementPlayCount() {
-        playCount += 1;
+        playCount.getAndIncrement();
     }
     
     public void incrementPlayCount(int amount) {
         if (amount < 1) {
             throw new IllegalArgumentException("Amount must be positive");
         }
-        playCount += amount;
+        playCount.getAndAdd(amount);
     }
 
     @Override

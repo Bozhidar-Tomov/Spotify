@@ -1,9 +1,12 @@
 package bg.sofia.uni.fmi.mjt.spotify.server.net;
 
+import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.SpotifyException;
 import bg.sofia.uni.fmi.mjt.spotify.server.SpotifySystem;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.CancelledKeyException;
+import java.nio.channels.ClosedSelectorException;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -12,21 +15,22 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 
 public class ServerDispatcher implements Runnable, AutoCloseable {
     private static final String SERVER_HOST = "localhost";
     private static final int BUFFER_SIZE = 512;
     private final int port;
+    private final SpotifySystem system;
 
     private ServerSocketChannel serverSocketChannel;
     private ExecutorService executor;
     private Selector selector;
-    private final SpotifySystem system;
 
     public ServerDispatcher(int port, SpotifySystem system) {
         this.port = port;
         this.system = system;
-        executor = Executors.newVirtualThreadPerTaskExecutor();
+        this.executor = Executors.newVirtualThreadPerTaskExecutor();
     }
 
     @Override
@@ -36,8 +40,8 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
         try {
             setup();
             runLoop();
-        } catch (IOException e) {
-            System.err.println("Error during server operation: " + e.getMessage());
+        } catch (IOException | SpotifyException e) {
+            System.err.println("Fatal server error: " + e.getMessage());
         } finally {
             stop();
         }
@@ -50,39 +54,54 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
 
     private void setup() throws IOException {
         System.out.println("NIO server starting...");
-        // throw new IOException("TEST NIO EXC");
         selector = Selector.open();
-        
+
         serverSocketChannel = ServerSocketChannel.open();
         serverSocketChannel.bind(new InetSocketAddress(SERVER_HOST, port));
         serverSocketChannel.configureBlocking(false);
         serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-        
+
         System.out.println("NIO server started on " + SERVER_HOST + ":" + port);
     }
 
     private void runLoop() throws IOException {
         while (!Thread.currentThread().isInterrupted()) {
-            int readyChannels = selector.select();
-            if (readyChannels == 0) {
-                continue;
-            }
-
-            Set<SelectionKey> selectedKeys = selector.selectedKeys();
-            Iterator<SelectionKey> iterator = selectedKeys.iterator();
-
-            while (iterator.hasNext()) {
-                SelectionKey key = iterator.next();
-                iterator.remove();
-
-                if (!key.isValid()) {
+            try {
+                int readyChannels = selector.select();
+                if (readyChannels == 0) {
                     continue;
                 }
+            
+                Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                Iterator<SelectionKey> iterator = selectedKeys.iterator();
 
-                if (key.isAcceptable()) {
-                    acceptClientRequest(key);
-                } else if (key.isReadable()) {
-                    readClientRequest(key);
+                while (iterator.hasNext()) {
+                    SelectionKey key = iterator.next();
+                    iterator.remove();
+
+                    if (!key.isValid()) {
+                        continue;
+                    }
+
+                    try {
+                        if (key.isAcceptable()) {
+                            acceptClientRequest(key);
+                        }
+
+                        if (key.isReadable()) {
+                            readClientRequest(key);
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error handling client key: " + e.getMessage());
+                        cancelKey(key);
+                    }
+                }
+            } catch (ClosedSelectorException e) {
+                break;
+            } catch (IOException e) {
+                System.err.println("Error during select: " + e.getMessage());
+                if (!selector.isOpen()) {
+                    break;
                 }
             }
         }
@@ -91,63 +110,79 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
     private void acceptClientRequest(SelectionKey key) throws IOException {
         ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
         SocketChannel clientChannel = serverChannel.accept();
-        if (clientChannel == null)
-            return;
 
-        clientChannel.configureBlocking(false);
-        ByteBuffer buffer = ByteBuffer.allocate(BUFFER_SIZE);
-        clientChannel.register(selector, SelectionKey.OP_READ, buffer);
-        System.out.println("Accepted connection: " + clientChannel.getRemoteAddress());
+        if (clientChannel == null) {
+            return;
+        }
+        try {
+            clientChannel.configureBlocking(false);
+            clientChannel.register(selector, SelectionKey.OP_READ, ByteBuffer.allocate(BUFFER_SIZE));
+            System.out.println("Accepted connection: " + clientChannel.getRemoteAddress());
+        } catch (IOException e) {
+            System.err.println("Failed to configure new client connection: " + e.getMessage());
+            clientChannel.close();
+        }
     }
 
     private void readClientRequest(SelectionKey key) {
-        if (!key.isValid())
+        if (!key.isValid()) {
             return;
-
-        key.interestOps(0);
+        }
 
         try {
-            executor.execute(new ClientHandler(key, system));
-
+            key.interestOps(0);
+            executor.execute(new RequestHandler(key, system));
+        } catch (RejectedExecutionException e) {
+            System.err.println("Server busy or shutting down. Closing client connection.");
+            cancelKey(key); 
+        } catch (CancelledKeyException e) {
+            cancelKey(key);
         } catch (Exception e) {
-            System.err.println("Failed to process client: " + e.getMessage());
+            System.err.println("Error during processing client request: " + e.getMessage());
             cancelKey(key);
         }
     }
 
     private void cancelKey(SelectionKey key) {
         try {
+            if (key == null) {
+                return;               
+            }
             key.channel().close();
             key.cancel();
-        } catch (IOException ignored) {
-            //
+        } catch (IOException e) {
+            System.err.println("Error closing key/channel: " + e.getMessage());
         }
     }
 
     public void stop() {
         try {
-            if (serverSocketChannel != null) {
-                serverSocketChannel.close();
-            }
-
-            if (selector != null) {
+            if (selector != null && selector.isOpen()) {
                 selector.wakeup();
                 selector.close();
             }
-            System.out.println("Network resources released.");
         } catch (IOException e) {
-            System.err.println("Error closing network: " + e.getMessage());
+            System.err.println("Error closing selector: " + e.getMessage());
+        }
+
+        try {
+            if (serverSocketChannel != null && serverSocketChannel.isOpen()) {
+                serverSocketChannel.close();
+            }
+        } catch (IOException e) {
+            System.err.println("Error closing socket channel: " + e.getMessage());
         }
 
         try {
             if (executor != null) {
                 executor.close();
             }
-            System.out.println("Client handler stopped.");
+            System.out.println("Client tasks stopped.");
         } catch (Exception e) {
+            System.err.println("Error closing tasks: " + e.getMessage());
             Thread.currentThread().interrupt();
         }
 
-        System.out.println("NIO server closed normally.");
+        System.out.println("NIO server resources released.");
     }
 }

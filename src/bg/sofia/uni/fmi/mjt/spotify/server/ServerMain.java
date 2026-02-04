@@ -20,6 +20,7 @@ public class ServerMain {
     }
 
     public static void main(String[] args) {
+        // TODO: start several instances of spotifysystem and remove singleton, reverse proxy
         Thread.currentThread().setName("Server Host Thread");
 
         ServerMain server = new ServerMain(7777);

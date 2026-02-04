@@ -10,7 +10,6 @@ public class CommandFactory {
     static {
         REGISTRY.put("register", RegisterCommand::new);
         REGISTRY.put("login", LoginCommand::new);
-        REGISTRY.put("disconnect", DisconnectCommand::new);
         REGISTRY.put("search", SearchCommand::new);
         REGISTRY.put("top", TopCommand::new);
         REGISTRY.put("create-playlist", CreatePlaylistCommand::new);
