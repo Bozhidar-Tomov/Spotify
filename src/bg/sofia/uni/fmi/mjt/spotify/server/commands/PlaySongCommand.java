@@ -14,14 +14,8 @@ import java.util.Arrays;
 
 public class PlaySongCommand implements Command {
 
-    private ResponseSender client;
-
-    public void setResponseSender(ResponseSender responseSender) {
-        this.client = responseSender;
-    }
-
     @Override
-    public Response execute(List<String> args, SpotifySystem system) {
+    public Response execute(List<String> args, SpotifySystem system, ResponseSender client) {
         if (client == null || system == null || !system.isRunning()) {
             return Response.err();
         }

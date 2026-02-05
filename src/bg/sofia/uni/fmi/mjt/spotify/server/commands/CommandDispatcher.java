@@ -27,11 +27,7 @@ public final class CommandDispatcher {
             return new Response(404, "Command '" + commandName + "' not found.", null);
         }
 
-        if (command instanceof PlaySongCommand playCommand) {
-            playCommand.setResponseSender(client);
-        }
-
-        return command.execute(args, system);
+        return command.execute(args, system, client);
     }
 
     private static List<String> parse(String input) {
