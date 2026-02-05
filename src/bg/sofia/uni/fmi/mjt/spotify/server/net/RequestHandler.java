@@ -4,15 +4,13 @@ import bg.sofia.uni.fmi.mjt.spotify.common.net.Response;
 import bg.sofia.uni.fmi.mjt.spotify.common.net.ResponseSender;
 import bg.sofia.uni.fmi.mjt.spotify.server.SpotifySystem;
 import bg.sofia.uni.fmi.mjt.spotify.server.commands.CommandDispatcher;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.charset.StandardCharsets;
 
-public class RequestHandler implements Runnable, ResponseSender{
+public class RequestHandler implements Runnable {
     private final SelectionKey key;
     private final SpotifySystem system;
     private SocketChannel clientChannel = null;
@@ -23,8 +21,7 @@ public class RequestHandler implements Runnable, ResponseSender{
         this.system = system;
     }
 
-    private Response parseRequest() throws IOException {
-        
+    private Response parseRequest(ResponseSender sender) throws IOException {
         buffer.clear();
         int bytesRead = clientChannel.read(buffer);
 
@@ -42,34 +39,23 @@ public class RequestHandler implements Runnable, ResponseSender{
         buffer.get(clientData);
         String request = new String(clientData, StandardCharsets.UTF_8).strip();
 
-        return CommandDispatcher.dispatch(request, system, this);
-    }
-
-    @Override
-    public void sendResponse(Response response) throws IOException {
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-                ObjectOutputStream oos = new ObjectOutputStream(bos)) {
-
-            oos.writeObject(response);
-            oos.flush();
-            byte[] responseBytes = bos.toByteArray();
-            send(responseBytes);
-        }
+        return CommandDispatcher.dispatch(request, system, sender);
     }
 
     @Override
     public void run() {
         clientChannel = (SocketChannel) key.channel();
         buffer = (ByteBuffer) key.attachment();
+        ResponseSender sender = new SocketResponseSender(clientChannel);
 
         try {
-            Response response = parseRequest();
+            Response response = parseRequest(sender);
 
             if (response == null) {
                 return;
             }
 
-            sendResponse(response);
+            sender.sendResponse(response);
 
             if (clientChannel.isOpen()) {
                 key.interestOps(SelectionKey.OP_READ);
@@ -82,9 +68,9 @@ public class RequestHandler implements Runnable, ResponseSender{
         } catch (RuntimeException e) {
             System.err.println("Internal error: " + e.getMessage());
             e.printStackTrace();
-            
+
             try {
-                sendResponse(Response.err());
+                sender.sendResponse(Response.err());
             } catch (IOException _) {
                 System.err.println("Communication error: " + e.getMessage());
                 closeConnection();
@@ -98,21 +84,6 @@ public class RequestHandler implements Runnable, ResponseSender{
             key.channel().close();
         } catch (IOException ex) {
             System.err.println("Error closing connection: " + ex.getMessage());
-        }
-    }
-
-    private void send(byte[] bytes) throws IOException {
-        ByteBuffer lengthBuffer = ByteBuffer.allocate(Integer.BYTES);
-        lengthBuffer.putInt(bytes.length);
-        lengthBuffer.flip();
-        
-        while (lengthBuffer.hasRemaining()) {
-            clientChannel.write(lengthBuffer);
-        }
-
-        ByteBuffer payloadBuffer = ByteBuffer.wrap(bytes);
-        while (payloadBuffer.hasRemaining()) {
-            clientChannel.write(payloadBuffer);
         }
     }
 }

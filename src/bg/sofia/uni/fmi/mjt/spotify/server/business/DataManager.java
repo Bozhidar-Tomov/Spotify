@@ -1,4 +1,4 @@
-package bg.sofia.uni.fmi.mjt.spotify.server;
+package bg.sofia.uni.fmi.mjt.spotify.server.business;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;

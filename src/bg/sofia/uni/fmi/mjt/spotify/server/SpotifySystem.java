@@ -11,6 +11,7 @@ import bg.sofia.uni.fmi.mjt.spotify.common.models.Track;
 import bg.sofia.uni.fmi.mjt.spotify.common.models.UserDTO;
 import bg.sofia.uni.fmi.mjt.spotify.common.net.AudioFormatPayload;
 import bg.sofia.uni.fmi.mjt.spotify.server.models.Password;
+import bg.sofia.uni.fmi.mjt.spotify.server.business.DataManager;
 import bg.sofia.uni.fmi.mjt.spotify.server.business.PasswordHandler;
 import bg.sofia.uni.fmi.mjt.spotify.server.models.UserEntity;
 import bg.sofia.uni.fmi.mjt.spotify.server.net.ServerDispatcher;
@@ -30,6 +31,12 @@ import java.util.concurrent.TimeUnit;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
+import bg.sofia.uni.fmi.mjt.spotify.common.net.Response;
+import bg.sofia.uni.fmi.mjt.spotify.common.net.ResponseSender;
+import bg.sofia.uni.fmi.mjt.spotify.server.streaming.AudioStreamer;
+import java.io.File;
+import java.util.Arrays;
+import java.util.Collections;
 
 public final class SpotifySystem {
     private static final short TIMEOUT = 3;
@@ -67,6 +74,81 @@ public final class SpotifySystem {
         }
         return instance;
     }
+
+    public void loadData() throws IOException {
+        DataManager.load(usersByEmail, playlistsByEmail, tracksByTitle);
+    }
+
+    public void saveData() throws IOException {
+        DataManager.save(usersByEmail, playlistsByEmail, tracksByTitle);
+    }
+
+    public void start(int port) throws IOException {
+        System.out.println("SpotifySystem: Booting system...");
+
+        if (port < 0 || port > 65535) {
+            throw new IllegalArgumentException("Invalid port: " + port);
+        }
+
+        try {
+            loadData();
+            System.out.println("SpotifySystem: Data loaded successfully.");
+        } catch (IOException e) {
+            System.err.println("SpotifySystem: Failure during data load: " + e.getMessage());
+            throw e;
+        }
+
+        ServerDispatcher dispatcher = new ServerDispatcher(port, this);
+
+        networkExecutor = Executors.newSingleThreadExecutor();
+        networkExecutor.execute(dispatcher);
+
+        startPeriodicSave();
+    }
+
+    private void startPeriodicSave() {
+        scheduler = Executors.newSingleThreadScheduledExecutor();
+        scheduler.scheduleWithFixedDelay(scheduledSaveTask, SAVE_INTERVAL, SAVE_INTERVAL, TIME_UNIT);
+
+        System.out.println("SpotifySystem: Periodic save scheduled every " + SAVE_INTERVAL + " "
+                + TIME_UNIT.toString().toLowerCase());
+    }
+
+    public void stop() {
+        System.out.println("SpotifySystem: Stopping...");
+
+        stopExecutor(networkExecutor);
+        stopExecutor(scheduler);
+
+        try {
+            saveData();
+            System.out.println("SpotifySystem: Data saved successfully.");
+        } catch (IOException e) {
+            System.err.println("Error: Saving data on shutdown failed: " + e.getMessage());
+        }
+        System.out.println("SpotifySystem: Shutdown complete.");
+    }
+
+    private static void stopExecutor(ExecutorService executor) {
+        if (executor != null) {
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(TIMEOUT, TIME_UNIT)) {
+                    executor.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    public boolean isRunning() {
+        return networkExecutor != null && !networkExecutor.isShutdown() && !networkExecutor.isTerminated();
+    }
+
+    // TODO: move the logic below in separate classes, away from SpotifySystem to
+    // avoid God Object
 
     public UserDTO registerUser(String email, String password) {
         if (email == null || password == null || email.isBlank() || password.isBlank()) {
@@ -108,88 +190,6 @@ public final class SpotifySystem {
         return user.toDTO();
     }
 
-    public void start(int port) throws IOException {
-        System.out.println("SpotifySystem: Booting system...");
-
-        if (port < 0 || port > 65535) {
-            throw new IllegalArgumentException("Invalid port: " + port);
-        }
-
-        try {
-            loadData();
-            System.out.println("SpotifySystem: Data loaded successfully.");
-        } catch (IOException e) {
-            System.err.println("SpotifySystem: Failure during data load: " + e.getMessage());
-            throw e;
-        }
-
-        ServerDispatcher dispatcher = new ServerDispatcher(port, this);
-
-        networkExecutor = Executors.newSingleThreadExecutor();
-        networkExecutor.execute(dispatcher);
-        System.out.println("SpotifySystem: Server started on port " + port);
-
-        startPeriodicSave();
-    }
-
-    private void startPeriodicSave() {
-        scheduler = Executors.newSingleThreadScheduledExecutor();
-        scheduler.scheduleWithFixedDelay(scheduledSaveTask, SAVE_INTERVAL, SAVE_INTERVAL, TIME_UNIT);
-
-        System.out.println("SpotifySystem: Periodic save scheduled every " + SAVE_INTERVAL + " "
-                + TIME_UNIT.toString().toLowerCase());
-    }
-
-    public void loadData() throws IOException {
-        DataManager.load(usersByEmail, playlistsByEmail, tracksByTitle);
-    }
-
-    public void saveData() throws IOException {
-        DataManager.save(usersByEmail, playlistsByEmail, tracksByTitle);
-    }
-
-    public void stop() {
-        System.out.println("SpotifySystem: Stopping...");
-
-        stopExecutor(networkExecutor);
-        stopExecutor(scheduler);
-
-        try {
-            saveData();
-            System.out.println("SpotifySystem: Data saved successfully.");
-        } catch (IOException e) {
-            System.err.println("Error: Saving data on shutdown failed: " + e.getMessage());
-        }
-        System.out.println("SpotifySystem: Shutdown complete.");
-    }
-
-    private static void stopExecutor(ExecutorService executor) {
-        if (executor != null) {
-            executor.shutdown();
-            try {
-                if (!executor.awaitTermination(TIMEOUT, TIME_UNIT)) {
-                    executor.shutdownNow();
-                }
-            } catch (InterruptedException e) {
-                executor.shutdownNow();
-                Thread.currentThread().interrupt();
-            }
-        }
-    }
-
-    public List<Track> getTracks(String trackTitle) {
-        List<Track> tracks = tracksByTitle.get(trackTitle);
-
-        if (tracks == null || tracks.isEmpty()) {
-            return List.of();
-        }
-        return List.copyOf(tracks);
-    }
-
-    public boolean isRunning() {
-        return networkExecutor != null && !networkExecutor.isShutdown() && !networkExecutor.isTerminated();
-    }
-
     public void addNewTrack(String id, String title, String artist, Path filePath)
             throws IOException, UnsupportedAudioFileException {
 
@@ -221,5 +221,42 @@ public final class SpotifySystem {
         }
 
         tracksByTitle.computeIfAbsent(track.title(), key -> new ArrayList<>()).add(new Track(track));
+    }
+
+    public Response playSong(String title, ResponseSender client) {
+        if (client == null || title == null || title.isBlank()) {
+            throw new IllegalArgumentException("Client cannot be null");
+        }
+
+        List<Track> tracks = tracksByTitle.getOrDefault(title, Collections.emptyList());
+
+        if (tracks.isEmpty()) {
+            return new Response(404, "Song '" + title + "' not found.", null);
+        }
+
+        // TODO: add specification by artist or ID
+        if (tracks.size() != 1) {
+            return new Response(400, "Multiple songs with title '" + title + "' found", null);
+        }
+
+        Track track = tracks.getFirst();
+        AudioStreamer streamer = new AudioStreamer(client);
+
+        try (AudioInputStream audioStream = AudioSystem.getAudioInputStream(new File(track.metadata().filePath()))) {
+            streamer.startStream(audioStream.getFormat(), "Playing " + track.metadata().title());
+
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = audioStream.read(buffer)) != -1) {
+                byte[] chunk = (bytesRead == buffer.length) ? buffer : Arrays.copyOf(buffer, bytesRead);
+                streamer.sendChunk(chunk);
+            }
+
+            streamer.endStream();
+            return new Response(200, "Playback finished", null);
+        } catch (Exception e) {
+            System.err.println("Error during playback: " + e.getMessage());
+            return Response.err();
+        }
     }
 }
