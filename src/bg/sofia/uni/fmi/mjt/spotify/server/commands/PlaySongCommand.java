@@ -14,14 +14,10 @@ public class PlaySongCommand implements Command {
             return Response.err();
         }
 
-        if (!system.isRunning()) {
-            return Response.err();
-        }
-
         if (args == null || args.size() != 1) {
             return new Response(400, "Usage: play <song name>", null);
         }
 
-        return system.playSong(args.get(0), client);
+        return system.streamTrack(args.get(0), client);
     }
 }

@@ -223,7 +223,7 @@ public final class SpotifySystem {
         tracksByTitle.computeIfAbsent(track.title(), key -> new ArrayList<>()).add(new Track(track));
     }
 
-    public Response playSong(String title, ResponseSender client) {
+    public Response streamTrack(String title, ResponseSender client) {
         if (client == null || title == null || title.isBlank()) {
             throw new IllegalArgumentException("Client cannot be null");
         }
@@ -258,5 +258,11 @@ public final class SpotifySystem {
             System.err.println("Error during playback: " + e.getMessage());
             return Response.err();
         }
+    }
+
+    public Response stopStreamingTrack(ResponseSender client) throws IOException {
+        AudioStreamer streamer = new AudioStreamer(client);
+        streamer.endStream();
+        return new Response(200, "Playback finished", null);
     }
 }

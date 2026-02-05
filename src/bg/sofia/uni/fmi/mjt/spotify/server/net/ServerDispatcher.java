@@ -71,7 +71,7 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
                 if (readyChannels == 0) {
                     continue;
                 }
-            
+
                 Set<SelectionKey> selectedKeys = selector.selectedKeys();
                 Iterator<SelectionKey> iterator = selectedKeys.iterator();
 
@@ -134,7 +134,7 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
             executor.execute(new RequestHandler(key, system));
         } catch (RejectedExecutionException e) {
             System.err.println("Server busy or shutting down. Closing client connection.");
-            cancelKey(key); 
+            cancelKey(key);
         } catch (CancelledKeyException e) {
             cancelKey(key);
         } catch (Exception e) {
@@ -146,7 +146,7 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
     private void cancelKey(SelectionKey key) {
         try {
             if (key == null) {
-                return;               
+                return;
             }
             key.channel().close();
             key.cancel();
@@ -156,6 +156,16 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
     }
 
     public void stop() {
+        try {
+            if (executor != null) {
+                executor.close();
+            }
+            System.out.println("Client tasks stopped.");
+        } catch (Exception e) {
+            System.err.println("Error closing tasks: " + e.getMessage());
+            Thread.currentThread().interrupt();
+        }
+
         try {
             if (selector != null && selector.isOpen()) {
                 selector.wakeup();
@@ -171,16 +181,6 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
             }
         } catch (IOException e) {
             System.err.println("Error closing socket channel: " + e.getMessage());
-        }
-
-        try {
-            if (executor != null) {
-                executor.close();
-            }
-            System.out.println("Client tasks stopped.");
-        } catch (Exception e) {
-            System.err.println("Error closing tasks: " + e.getMessage());
-            Thread.currentThread().interrupt();
         }
 
         System.out.println("NIO server resources released.");

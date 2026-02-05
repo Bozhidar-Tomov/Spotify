@@ -57,7 +57,7 @@ public class RequestHandler implements Runnable {
 
             sender.sendResponse(response);
 
-            if (clientChannel.isOpen()) {
+            if (clientChannel.isOpen() && key.isValid()) {
                 key.interestOps(SelectionKey.OP_READ);
                 key.selector().wakeup();
             }
