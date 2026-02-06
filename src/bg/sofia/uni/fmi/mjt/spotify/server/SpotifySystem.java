@@ -1,5 +1,6 @@
 package bg.sofia.uni.fmi.mjt.spotify.server;
 
+import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.AmbiguousSourceException;
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.AuthenticationException;
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.InternalSystemException;
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.SourceAlreadyExistsException;
@@ -28,21 +29,23 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.UnsupportedAudioFileException;
-import bg.sofia.uni.fmi.mjt.spotify.common.net.Response;
+
 import bg.sofia.uni.fmi.mjt.spotify.common.net.ResponseSender;
 import bg.sofia.uni.fmi.mjt.spotify.server.streaming.AudioStreamer;
-import java.io.File;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 
 public final class SpotifySystem {
-    private static final short TIMEOUT = 3;
+    private static final short TIMEOUT = 2;
     private static final int SAVE_INTERVAL = 90;
     private static final TimeUnit TIME_UNIT = TimeUnit.SECONDS;
-    private static SpotifySystem instance = null;
+    private static volatile SpotifySystem instance = null;
 
     private final Runnable scheduledSaveTask = () -> {
         try {
@@ -54,9 +57,14 @@ public final class SpotifySystem {
         }
     };
 
+    // TODO: make initial lists hashmaps?
     private final Map<String, UserEntity> usersByEmail = new ConcurrentHashMap<>();
     private final Map<String, List<Playlist>> playlistsByEmail = new ConcurrentHashMap<>();
     private final Map<String, List<Track>> tracksByTitle = new ConcurrentHashMap<>();
+    private final Map<String, Track> tracksById = new ConcurrentHashMap<>();
+    
+    private final Map<ResponseSender, AudioStreamer> activeStreams = new ConcurrentHashMap<>();
+    private final Map<ResponseSender, String> userSessions = new ConcurrentHashMap<>();
 
     private ScheduledExecutorService scheduler;
     private ExecutorService networkExecutor;
@@ -150,7 +158,7 @@ public final class SpotifySystem {
     // TODO: move the logic below in separate classes, away from SpotifySystem to
     // avoid God Object
 
-    public UserDTO registerUser(String email, String password) {
+    public void registerUser(String email, String password) {
         if (email == null || password == null || email.isBlank() || password.isBlank()) {
             throw new ValidationException("Email and password cannot be null or empty.");
         }
@@ -168,11 +176,9 @@ public final class SpotifySystem {
 
         UserEntity newUser = new UserEntity(email, hashed);
         usersByEmail.put(email, newUser);
-
-        return newUser.toDTO();
     }
 
-    public UserDTO login(String email, String password) {
+    public UserDTO login(String email, String password, ResponseSender client) {
         if (email == null || password == null || email.isBlank() || password.isBlank()) {
             throw new ValidationException("Email and password cannot be null or empty.");
         }
@@ -187,6 +193,7 @@ public final class SpotifySystem {
             throw new InternalSystemException("Hashing algorithm configuration error.", e);
         }
 
+        userSessions.put(client, email);
         return user.toDTO();
     }
 
