@@ -47,17 +47,8 @@ public class ResponseHandler implements Runnable {
                         line.write(binaryPayload.data(), 0, binaryPayload.data().length);
                     }
                 } else if ("STREAM_END".equals(response.message())) {
-                    if (line != null) {
-                        try {
-                            // drain() blocks until the internal buffer is empty
-                            line.drain();
-                        } catch (Exception ignored) {
-                            // verify drain
-                        }
-                        line.stop();
-                        line.close();
-                        System.out.println("Playback finished.");
-                    }
+                    stopAudio();
+                    System.out.println("Playback finished.");
                 } else {
                     if (response.statusCode() != 200) {
                         System.out.println("Error: " + response.message());
@@ -77,7 +68,6 @@ public class ResponseHandler implements Runnable {
         }
     }
 
-
     private Response parseResponse() throws IOException {
         lengthBuffer.clear();
         readFully(lengthBuffer);
@@ -89,6 +79,7 @@ public class ResponseHandler implements Runnable {
             return null;
 
         ByteBuffer payloadBuffer = ByteBuffer.allocate(length);
+
         readFully(payloadBuffer);
 
         try (ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(payloadBuffer.array()))) {
@@ -102,19 +93,26 @@ public class ResponseHandler implements Runnable {
         while (buffer.hasRemaining()) {
             if (clientChannel.read(buffer) == -1) {
                 clientChannel.close();
-                throw new IOException("Connection closed prematurely");
+                throw new IOException("Connection closed prematurely.");
             }
         }
     }
 
     private void initAudio(AudioFormatPayload payload) throws LineUnavailableException {
-        if (line != null && line.isOpen()) {
-            line.close();
-        }
+        stopAudio();
 
         DataLine.Info info = new DataLine.Info(SourceDataLine.class, payload.toAudioFormat());
         line = (SourceDataLine) AudioSystem.getLine(info);
         line.open();
         line.start();
+    }
+
+    private void stopAudio() {
+        if (line != null) {
+            line.drain();
+            line.stop();
+            line.close();
+            line = null;
+        }
     }
 }

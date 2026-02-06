@@ -39,6 +39,8 @@ public class RequestHandler implements Runnable {
         buffer.get(clientData);
         String request = new String(clientData, StandardCharsets.UTF_8).strip();
 
+        // HACK
+        System.out.println("NEW command ");
         return CommandDispatcher.dispatch(request, system, sender);
     }
 
@@ -51,11 +53,9 @@ public class RequestHandler implements Runnable {
         try {
             Response response = parseRequest(sender);
 
-            if (response == null) {
-                return;
+            if (response != null) {
+                sender.sendResponse(response);
             }
-
-            sender.sendResponse(response);
 
             if (clientChannel.isOpen() && key.isValid()) {
                 key.interestOps(SelectionKey.OP_READ);
