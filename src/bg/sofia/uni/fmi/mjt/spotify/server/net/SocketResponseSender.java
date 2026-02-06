@@ -29,17 +29,33 @@ public class SocketResponseSender implements ResponseSender {
     }
 
     private void send(byte[] bytes) throws IOException {
+        ByteBuffer payloadBuffer = ByteBuffer.wrap(bytes);
         ByteBuffer lengthBuffer = ByteBuffer.allocate(Integer.BYTES);
         lengthBuffer.putInt(bytes.length);
         lengthBuffer.flip();
 
-        while (lengthBuffer.hasRemaining()) {
-            clientChannel.write(lengthBuffer);
+        synchronized (clientChannel) {
+            while (lengthBuffer.hasRemaining()) {
+                clientChannel.write(lengthBuffer);
+            }
+            while (payloadBuffer.hasRemaining()) {
+                clientChannel.write(payloadBuffer);
+            }
         }
+    }
 
-        ByteBuffer payloadBuffer = ByteBuffer.wrap(bytes);
-        while (payloadBuffer.hasRemaining()) {
-            clientChannel.write(payloadBuffer);
-        }
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        SocketResponseSender that = (SocketResponseSender) o;
+        return clientChannel.equals(that.clientChannel);
+    }
+
+    @Override
+    public int hashCode() {
+        return clientChannel.hashCode();
     }
 }

@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class Track implements Serializable{
     private final SongMetadata metadata;
+    // TODO: atomic long not serializable?
     private AtomicLong playCount;
 
     public Track(SongMetadata metadata) {
@@ -16,8 +17,8 @@ public class Track implements Serializable{
         return this.metadata;
     }
 
-    public AtomicLong playCount() {
-        return playCount;
+    public long playCount() {
+        return playCount.get();
     }
 
     public void incrementPlayCount() {
