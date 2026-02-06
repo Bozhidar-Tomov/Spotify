@@ -300,20 +300,20 @@ public final class SpotifySystem {
         }
     }
 
-    public void addNewTrack(SongMetadata track) {
-        if (track == null) {
+    public synchronized void addNewTrack(SongMetadata metadata) {
+        if (metadata == null) {
             throw new ValidationException("Track metadata cannot be null.");
         }
 
-        boolean alreadyExists = tracksByTitle.values().stream()
-                .flatMap(List::stream)
-                .anyMatch(t -> t.metadata().id().equals(track.id()));
-
-        if (alreadyExists) {
-            throw new SourceAlreadyExistsException("Track with ID " + track.id() + " already exists.");
+        if (tracksById.containsKey(metadata.id())) {
+            throw new SourceAlreadyExistsException("Track ID already exists: " + metadata.id());
         }
 
-        tracksByTitle.computeIfAbsent(track.title(), key -> new ArrayList<>()).add(new Track(track));
+        Track track = new Track(metadata);
+
+        tracksById.put(metadata.id(), track);
+        tracksByTitle.computeIfAbsent(metadata.title(), k -> new ArrayList<>())
+                .add(track);
     }
 
     public Response streamTrack(String title, ResponseSender client) {
