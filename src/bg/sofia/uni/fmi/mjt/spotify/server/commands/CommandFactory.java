@@ -11,7 +11,7 @@ public class CommandFactory {
         REGISTRY.put("register", RegisterCommand::new);
         REGISTRY.put("login", LoginCommand::new);
         REGISTRY.put("search", SearchCommand::new);
-        REGISTRY.put("top", TopCommand::new);
+        REGISTRY.put("top", GlobalTopTracksCommand::new);
         REGISTRY.put("create-playlist", CreatePlaylistCommand::new);
         REGISTRY.put("add-song-to", AddSongCommand::new);
         REGISTRY.put("show-playlist", ShowPlaylistCommand::new);

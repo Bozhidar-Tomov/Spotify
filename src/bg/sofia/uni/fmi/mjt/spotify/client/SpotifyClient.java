@@ -80,6 +80,8 @@ public class SpotifyClient {
         }
         try {
             writer.println(message);
+            //HACK
+            System.out.println("SENT command");
         } catch (Exception e) {
             System.err.println("Error sending message: " + e.getMessage());
         }
