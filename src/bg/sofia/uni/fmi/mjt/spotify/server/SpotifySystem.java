@@ -197,6 +197,82 @@ public final class SpotifySystem {
         return user.toDTO();
     }
 
+    public void createPlaylist(String playlistName, ResponseSender client) {
+        if (client == null || playlistName == null || playlistName.isBlank()) {
+            throw new ValidationException("User and playlist name cannot be empty.");
+        }
+
+        String userEmail = getUserEmail(client);
+
+        if (userEmail == null) {
+            throw new AuthenticationException("You must be logged in to create a playlist.");
+        }
+
+        if (!usersByEmail.containsKey(userEmail)) {
+            throw new SourceNotFoundException("User not found.");
+        }
+
+        playlistsByEmail.compute(userEmail, (email, playlists) -> {
+            if (playlists == null) {
+                playlists = new ArrayList<>();
+                playlists.add(new Playlist(playlistName, email));
+                return playlists;
+            }
+
+            boolean exists = playlists.stream()
+                    .anyMatch(p -> p.name().equals(playlistName));
+
+            if (exists) {
+                throw new SourceAlreadyExistsException("Playlist '" + playlistName + "' already exists.");
+            }
+
+            playlists.add(new Playlist(playlistName, email));
+            return playlists;
+        });
+    }
+
+    private Track getTrack(String title) {
+        if (title == null) {
+            throw new ValidationException("Client or title cannot be null");
+        }
+
+        List<Track> tracks = tracksByTitle.getOrDefault(title, Collections.emptyList());
+
+        if (tracks.isEmpty()) {
+            throw new SourceNotFoundException("Song '" + title + "' not found.");
+        }
+
+        // TODO: add specification by artist or ID
+        if (tracks.size() != 1) {
+            throw new AmbiguousSourceException("Multiple songs with title '" + title + "' found");
+        }
+
+        return tracks.getFirst();
+    }
+
+    public String getUserEmail(ResponseSender client) {
+        return userSessions.get(client);
+    }
+
+    public void addSongToPlaylist(String userEmail, String playlistName, String songTitle) {
+        if (userEmail == null || playlistName == null || songTitle == null) {
+            throw new ValidationException("User email, playlist name and song title cannot be null");
+        }
+
+        List<Playlist> userPlaylists = playlistsByEmail.get(userEmail);
+        if (userPlaylists == null) {
+            throw new SourceNotFoundException("Playlist '" + playlistName + "' not found for user " + userEmail);
+        }
+
+        Playlist playlist = userPlaylists.stream()
+                .filter(p -> p.name().equals(playlistName))
+                .findFirst()
+                .orElseThrow(() -> new SourceNotFoundException("Playlist '" + playlistName + "' not found."));
+
+        Track track = getTrack(songTitle);
+        playlist.addTrack(track.metadata().id());
+    }
+
     public void addNewTrack(String id, String title, String artist, Path filePath)
             throws IOException, UnsupportedAudioFileException {
 
