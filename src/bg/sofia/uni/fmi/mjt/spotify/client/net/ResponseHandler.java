@@ -4,7 +4,10 @@ import bg.sofia.uni.fmi.mjt.spotify.common.net.AudioFormatPayload;
 import bg.sofia.uni.fmi.mjt.spotify.common.net.BinaryPayload;
 import bg.sofia.uni.fmi.mjt.spotify.common.net.Response;
 
-import javax.sound.sampled.*;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.SourceDataLine;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -14,6 +17,7 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.SocketChannel;
 
 public class ResponseHandler implements Runnable {
+    private final ByteBuffer lengthBuffer = ByteBuffer.allocate(Integer.BYTES);
     private final SocketChannel clientChannel;
     private SourceDataLine line;
 
@@ -73,44 +77,33 @@ public class ResponseHandler implements Runnable {
         }
     }
 
-    private Response parseResponse() throws IOException {
-        // 1. Read Length (4 bytes)
-        ByteBuffer lengthBuffer = ByteBuffer.allocate(Integer.BYTES);
-        while (lengthBuffer.hasRemaining()) {
-            int bytesRead = clientChannel.read(lengthBuffer);
-            if (bytesRead == -1) {
-                clientChannel.close();
-                return null;
-            }
-        }
-        lengthBuffer.flip();
-        int length = lengthBuffer.getInt();
 
-        // 2. Read Payload
-        if (length < 0) {
+    private Response parseResponse() throws IOException {
+        lengthBuffer.clear();
+        readFully(lengthBuffer);
+        int length = lengthBuffer.flip().getInt();
+
+        if (length < 0)
             throw new IOException("Invalid response length: " + length);
-        }
+        if (length == 0)
+            return null;
 
         ByteBuffer payloadBuffer = ByteBuffer.allocate(length);
-        while (payloadBuffer.hasRemaining()) {
-            int bytesRead = clientChannel.read(payloadBuffer);
-            if (bytesRead == -1) {
-                clientChannel.close();
-                throw new IOException("Connection closed while reading payload");
-            }
-        }
-        payloadBuffer.flip();
+        readFully(payloadBuffer);
 
-        byte[] clientData = new byte[payloadBuffer.remaining()];
-        payloadBuffer.get(clientData);
-
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(clientData);
-                ObjectInputStream ois = new ObjectInputStream(bais)) {
-
+        try (ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(payloadBuffer.array()))) {
             return (Response) ois.readObject();
-
         } catch (ClassNotFoundException e) {
-            throw new IOException("Failed to deserialize Response: Class not found", e);
+            throw new IOException("Deserialization failed", e);
+        }
+    }
+
+    private void readFully(ByteBuffer buffer) throws IOException {
+        while (buffer.hasRemaining()) {
+            if (clientChannel.read(buffer) == -1) {
+                clientChannel.close();
+                throw new IOException("Connection closed prematurely");
+            }
         }
     }
 
