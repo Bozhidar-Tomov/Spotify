@@ -5,6 +5,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.AmbiguousSourceException;
+import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.ValidationException;
+
 public class Playlist implements Serializable {
     private String name;
     private String ownerEmail;
@@ -35,10 +38,15 @@ public class Playlist implements Serializable {
     }
 
     public void addTrack(String trackId) {
-        // TODO: check if track with that id exists
         if (trackId == null) {
-            throw new IllegalArgumentException("trackID should not be null");
+            throw new ValidationException("trackID should not be null");
         }
+
+        if (trackIds.contains(trackId)) {
+            throw new AmbiguousSourceException(
+                "Track with ID " + trackId + "already present in playlist " + name);
+        }
+        
         this.trackIds.add(trackId);
     }
 

@@ -1,5 +1,6 @@
 package bg.sofia.uni.fmi.mjt.spotify.server.commands;
 
+import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.AmbiguousSourceException;
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.AuthenticationException;
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.SourceAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.SourceNotFoundException;
@@ -31,7 +32,7 @@ public class CreatePlaylistCommand implements Command {
             return new Response(401, "Auth: " + e.getMessage(), null);
         } catch(SourceNotFoundException e){
             return new Response(404, "Missing: " + e.getMessage(), null);
-        } catch(SourceAlreadyExistsException e){
+        } catch(SourceAlreadyExistsException | AmbiguousSourceException e){
             return new Response(409, "Conflict: " + e.getMessage(), null);
         } catch (Exception e) {
             return Response.err();

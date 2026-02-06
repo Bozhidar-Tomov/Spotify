@@ -155,6 +155,29 @@ public final class SpotifySystem {
         return networkExecutor != null && !networkExecutor.isShutdown() && !networkExecutor.isTerminated();
     }
 
+    private Track getTrack(String title) {
+        if (title == null) {
+            throw new ValidationException("Client or title cannot be null");
+        }
+
+        List<Track> tracks = tracksByTitle.getOrDefault(title, Collections.emptyList());
+
+        if (tracks.isEmpty()) {
+            throw new SourceNotFoundException("Song '" + title + "' not found.");
+        }
+
+        // TODO: add specification by artist or ID
+        if (tracks.size() != 1) {
+            throw new AmbiguousSourceException("Multiple songs with title '" + title + "' found");
+        }
+
+        return tracks.getFirst();
+    }
+
+    private String getUserEmail(ResponseSender client) {
+        return userSessions.get(client);
+    }
+
     // TODO: move the logic below in separate classes, away from SpotifySystem to
     // avoid God Object
 
@@ -230,47 +253,34 @@ public final class SpotifySystem {
             return playlists;
         });
     }
-
-    private Track getTrack(String title) {
-        if (title == null) {
-            throw new ValidationException("Client or title cannot be null");
+    
+    public void addSongToPlaylist(String playlistName, String songTitle, ResponseSender client) {
+        if (client == null || playlistName == null || songTitle == null || playlistName.isBlank()
+                || songTitle.isBlank()) {
+            throw new ValidationException("Playlist name and song title cannot be null");
         }
 
-        List<Track> tracks = tracksByTitle.getOrDefault(title, Collections.emptyList());
-
-        if (tracks.isEmpty()) {
-            throw new SourceNotFoundException("Song '" + title + "' not found.");
+        String userEmail = getUserEmail(client);
+        if (userEmail == null) {
+            throw new AuthenticationException("You must be logged in to create a playlist.");
         }
 
-        // TODO: add specification by artist or ID
-        if (tracks.size() != 1) {
-            throw new AmbiguousSourceException("Multiple songs with title '" + title + "' found");
+        if (!playlistsByEmail.containsKey(userEmail)) {
+            throw new SourceNotFoundException("No playlists found for user " + userEmail);
         }
-
-        return tracks.getFirst();
-    }
-
-    public String getUserEmail(ResponseSender client) {
-        return userSessions.get(client);
-    }
-
-    public void addSongToPlaylist(String userEmail, String playlistName, String songTitle) {
-        if (userEmail == null || playlistName == null || songTitle == null) {
-            throw new ValidationException("User email, playlist name and song title cannot be null");
-        }
-
-        List<Playlist> userPlaylists = playlistsByEmail.get(userEmail);
-        if (userPlaylists == null) {
-            throw new SourceNotFoundException("Playlist '" + playlistName + "' not found for user " + userEmail);
-        }
-
-        Playlist playlist = userPlaylists.stream()
-                .filter(p -> p.name().equals(playlistName))
-                .findFirst()
-                .orElseThrow(() -> new SourceNotFoundException("Playlist '" + playlistName + "' not found."));
 
         Track track = getTrack(songTitle);
-        playlist.addTrack(track.metadata().id());
+
+        playlistsByEmail.computeIfPresent(userEmail, (email, userPlaylists) -> {
+            Playlist playlist = userPlaylists.stream()
+                    .filter(p -> p.name().equals(playlistName))
+                    .findFirst()
+                    .orElseThrow(() -> new SourceNotFoundException("Playlist '" + playlistName + "' not found."));
+
+            playlist.addTrack(track.metadata().id());
+
+            return userPlaylists;
+        });
     }
 
     public void addNewTrack(String id, String title, String artist, Path filePath)
