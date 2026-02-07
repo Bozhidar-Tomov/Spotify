@@ -4,7 +4,7 @@ import java.util.List;
 
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.InternalSystemException;
 import bg.sofia.uni.fmi.mjt.spotify.common.models.Track;
-import bg.sofia.uni.fmi.mjt.spotify.common.net.ListPayload;
+import bg.sofia.uni.fmi.mjt.spotify.common.net.CollectionPayload;
 import bg.sofia.uni.fmi.mjt.spotify.common.net.Response;
 import bg.sofia.uni.fmi.mjt.spotify.server.SpotifySystem;
 
@@ -39,7 +39,7 @@ public class GlobalTopTracksCommand implements Command {
                 return new Response(200, "No tracks are globally played.", null);
             }
 
-            return new Response(200, "OK", new ListPayload<>(topTracks));
+            return new Response(200, "OK", new CollectionPayload<>(topTracks));
         } catch (InternalSystemException e) {
             return Response.err();
         }

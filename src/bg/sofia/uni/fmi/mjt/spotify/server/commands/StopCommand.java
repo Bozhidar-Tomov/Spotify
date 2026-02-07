@@ -10,7 +10,6 @@ import java.util.List;
 public class StopCommand implements Command {
     @Override
     public Response execute(List<String> args, SpotifySystem system, ResponseSender client) {
-
         if (client == null || system == null || !system.isRunning()) {
             return Response.err();
         }

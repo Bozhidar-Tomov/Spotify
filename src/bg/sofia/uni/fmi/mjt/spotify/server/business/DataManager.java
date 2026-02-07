@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.google.gson.Gson;
 
@@ -71,7 +72,7 @@ public final class DataManager {
         }
     }
 
-    public static void save(Map<String, UserEntity> usersByEmail, Map<String, List<Playlist>> playlistsByEmail,
+    public static void save(Map<String, UserEntity> usersByEmail, Map<String, Set<Playlist>> playlistsByEmail,
             Map<String, List<Track>> tracksByTitle)
             throws IOException {
         saveUsers(usersByEmail);
@@ -79,7 +80,7 @@ public final class DataManager {
         saveTracks(tracksByTitle);
     }
 
-    public static void savePlaylists(Map<String, List<Playlist>> playlistsByEmail) throws IOException {
+    public static void savePlaylists(Map<String, Set<Playlist>> playlistsByEmail) throws IOException {
         saveToJsonFile(PLAYLISTS_FILE, new PlaylistWrapper(playlistsByEmail));
     }
 
@@ -107,7 +108,7 @@ public final class DataManager {
         }
     }
 
-    public static void load(Map<String, UserEntity> usersByEmail, Map<String, List<Playlist>> playlistsByEmail,
+    public static void load(Map<String, UserEntity> usersByEmail, Map<String, Set<Playlist>> playlistsByEmail,
             Map<String, List<Track>> tracksByTitle)
             throws IOException {
         loadUsers(usersByEmail);
@@ -152,7 +153,7 @@ public final class DataManager {
         }
     }
 
-    public static void loadPlaylists(Map<String, List<Playlist>> playlistsByEmail) throws IOException {
+    public static void loadPlaylists(Map<String, Set<Playlist>> playlistsByEmail) throws IOException {
         loadFromJsonFile(PLAYLISTS_FILE, PlaylistWrapper.class, playlistsByEmail);
     }
 

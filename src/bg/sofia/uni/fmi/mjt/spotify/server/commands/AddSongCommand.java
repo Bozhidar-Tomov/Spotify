@@ -27,13 +27,13 @@ public class AddSongCommand implements Command {
         try {
             system.addSongToPlaylist(playlistName, songTitle, client);
             return new Response(200, "Song added to playlist.", null);
-        } catch(ValidationException e){
+        } catch (ValidationException e) {
             return new Response(400, "Request: " + e.getMessage(), null);
-        } catch(AuthenticationException e){
+        } catch (AuthenticationException e) {
             return new Response(401, "Auth: " + e.getMessage(), null);
-        } catch(SourceNotFoundException e){
+        } catch (SourceNotFoundException e) {
             return new Response(404, "Missing: " + e.getMessage(), null);
-        } catch(SourceAlreadyExistsException | AmbiguousSourceException e){
+        } catch (SourceAlreadyExistsException | AmbiguousSourceException e) {
             return new Response(409, "Conflict: " + e.getMessage(), null);
         } catch (Exception e) {
             return Response.err();

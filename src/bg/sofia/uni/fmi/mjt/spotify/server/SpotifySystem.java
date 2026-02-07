@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -40,6 +41,7 @@ import bg.sofia.uni.fmi.mjt.spotify.common.net.ResponseSender;
 import bg.sofia.uni.fmi.mjt.spotify.server.streaming.AudioStreamer;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 
 public final class SpotifySystem {
     private static final short TIMEOUT = 2;
@@ -59,7 +61,7 @@ public final class SpotifySystem {
 
     // TODO: make initial lists hashmaps?
     private final Map<String, UserEntity> usersByEmail = new ConcurrentHashMap<>();
-    private final Map<String, List<Playlist>> playlistsByEmail = new ConcurrentHashMap<>();
+    private final Map<String, Set<Playlist>> playlistsByEmail = new ConcurrentHashMap<>();
     private final Map<String, List<Track>> tracksByTitle = new ConcurrentHashMap<>();
     private final Map<String, Track> tracksById = new ConcurrentHashMap<>();
     
@@ -178,6 +180,25 @@ public final class SpotifySystem {
         return userSessions.get(client);
     }
 
+    private Playlist getPlaylist(String name, String email) {
+        Set<Playlist> playlists = playlistsByEmail.get(email);
+
+        if (playlists == null || playlists.isEmpty()) {
+            throw new SourceNotFoundException("User has no playlists");
+        }
+
+        Playlist playlist = playlists.stream()
+                .filter(s -> s.name().equals(name))
+                .findAny()
+                .orElse(null);
+
+        if (playlist == null) {
+            throw new SourceNotFoundException("Playlist '" + name + "' not found.");
+        }
+
+        return playlist;
+    }
+
     // TODO: move the logic below in separate classes, away from SpotifySystem to
     // avoid God Object
 
@@ -238,7 +259,7 @@ public final class SpotifySystem {
 
         playlistsByEmail.compute(userEmail, (email, playlists) -> {
             if (playlists == null) {
-                playlists = new ArrayList<>();
+                playlists = new HashSet<>();
                 playlists.add(new Playlist(playlistName, email));
                 user.addPlaylist(playlistName);
                 return playlists;
@@ -369,6 +390,24 @@ public final class SpotifySystem {
                 .sorted(Map.Entry.<Track, Long>comparingByValue().reversed())
                 .limit(n)
                 .map(Map.Entry::getKey)
+                .toList();
+    }
+
+    public List<Track> getPlaylistTracks(String playlistName, ResponseSender client) {
+        if (client == null || playlistName == null || playlistName.isBlank()) {
+            throw new ValidationException("Playlist name cannot be null or empty.");
+        }
+
+        String userEmail = getUserEmail(client);
+        if (userEmail == null) {
+            throw new AuthenticationException("You must be logged in to view a playlist.");
+        }
+
+        Playlist playlist = getPlaylist(playlistName, userEmail);
+
+        return playlist.trackIds().stream()
+                .map(tracksById::get)
+                .filter(track -> track != null)
                 .toList();
     }
 }
