@@ -9,6 +9,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import bg.sofia.uni.fmi.mjt.spotify.client.audio.AudioPlayer;
+import bg.sofia.uni.fmi.mjt.spotify.client.audio.StreamingAudioPlayer;
 import bg.sofia.uni.fmi.mjt.spotify.client.net.ResponseHandler;
 import bg.sofia.uni.fmi.mjt.spotify.common.models.UserDTO;
 
@@ -19,6 +21,7 @@ public class SpotifyClient {
     private SocketChannel socketChannel;
     private PrintWriter writer;
     private ExecutorService executorListener;
+    private AudioPlayer audioPlayer;
 
     public void start(int port) throws IOException {
         if (port < 0 || port > 65535) {
@@ -36,14 +39,12 @@ public class SpotifyClient {
         }
 
         writer = new PrintWriter(Channels.newWriter(socketChannel, StandardCharsets.UTF_8), true);
+        audioPlayer = new StreamingAudioPlayer();
 
         executorListener = Executors.newSingleThreadExecutor();
-        executorListener.execute(new ResponseHandler(socketChannel));
+        executorListener.execute(new ResponseHandler(socketChannel, audioPlayer, this));
 
         System.out.println("Connected.");
-        // connects to server
-        // adds server listener
-        // adds audio receiver etc
     };
 
     public void stop() {
@@ -51,6 +52,9 @@ public class SpotifyClient {
         try {
             if (executorListener != null) {
                 executorListener.shutdownNow();
+            }
+            if (audioPlayer != null) {
+                audioPlayer.close();
             }
             if (socketChannel != null) {
                 socketChannel.close();
@@ -78,10 +82,18 @@ public class SpotifyClient {
             System.err.println("Not connected to server.");
             return;
         }
+
+        if (message.equals("get-all-playlists")) {
+            if (user == null) {
+                System.out.println("You must be logged in to get your playlists.");
+                return;
+            }
+            System.out.println(user.playlistNames().toString());
+            return;
+        }
+
         try {
             writer.println(message);
-            //HACK
-            System.out.println("SENT command");
         } catch (Exception e) {
             System.err.println("Error sending message: " + e.getMessage());
         }
