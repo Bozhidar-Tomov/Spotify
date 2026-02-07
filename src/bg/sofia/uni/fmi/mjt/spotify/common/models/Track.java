@@ -3,14 +3,22 @@ package bg.sofia.uni.fmi.mjt.spotify.common.models;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class Track implements Serializable{
+public final class Track implements Serializable{
     private final SongMetadata metadata;
-    // TODO: atomic long not serializable?
     private AtomicLong playCount;
 
     public Track(SongMetadata metadata) {
         this.metadata = metadata;
         this.playCount = new AtomicLong(0);
+    }
+    
+    private Track(SongMetadata metadata, long playCountValue) {
+        this.metadata = metadata;
+        this.playCount = new AtomicLong(playCountValue);
+    }
+
+    public static Track copyOf(Track other) {
+        return new Track(other.metadata, other.playCount());
     }
 
     public SongMetadata metadata() {

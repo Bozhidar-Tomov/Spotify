@@ -1,9 +1,10 @@
 package bg.sofia.uni.fmi.mjt.spotify.common.models;
 
 import java.io.Serializable;
-import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.AmbiguousSourceException;
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.ValidationException;
@@ -11,12 +12,12 @@ import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.ValidationException;
 public class Playlist implements Serializable {
     private String name;
     private String ownerEmail;
-    private List<String> trackIds;
+    private Set<String> trackIds;
 
     public Playlist(String name, String creatorEmail) {
         this.name = name;
         this.ownerEmail = creatorEmail;
-        this.trackIds = new ArrayList<>();
+        this.trackIds = new HashSet<>();
     }
 
     public String name() {
@@ -42,9 +43,9 @@ public class Playlist implements Serializable {
             throw new ValidationException("trackID should not be null");
         }
 
-        if (trackIds.contains(trackId)) {
+        if (!trackIds.add(trackId)) {
             throw new AmbiguousSourceException(
-                "Track with ID " + trackId + "already present in playlist " + name);
+                    "Track with ID " + trackId + "already present in playlist " + name);
         }
         
         this.trackIds.add(trackId);

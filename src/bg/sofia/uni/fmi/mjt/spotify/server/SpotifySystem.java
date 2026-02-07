@@ -316,45 +316,36 @@ public final class SpotifySystem {
                 .add(track);
     }
 
-    public Response streamTrack(String title, ResponseSender client) {
+    public void streamTrack(String title, ResponseSender client) {
         if (client == null || title == null || title.isBlank()) {
-            throw new IllegalArgumentException("Client cannot be null");
+            throw new ValidationException("Title cannot be null");
         }
 
-        List<Track> tracks = tracksByTitle.getOrDefault(title, Collections.emptyList());
+        Track track = getTrack(title);
 
-        if (tracks.isEmpty()) {
-            return new Response(404, "Song '" + title + "' not found.", null);
-        }
-
-        // TODO: add specification by artist or ID
-        if (tracks.size() != 1) {
-            return new Response(400, "Multiple songs with title '" + title + "' found", null);
-        }
-
-        Track track = tracks.getFirst();
-        AudioStreamer streamer = new AudioStreamer(client);
-
-        try (AudioInputStream audioStream = AudioSystem.getAudioInputStream(new File(track.metadata().filePath()))) {
-            streamer.startStream(audioStream.getFormat(), "Playing " + track.metadata().title());
-
-            byte[] buffer = new byte[4096];
-            int bytesRead;
-            while ((bytesRead = audioStream.read(buffer)) != -1) {
-                byte[] chunk = (bytesRead == buffer.length) ? buffer : Arrays.copyOf(buffer, bytesRead);
-                streamer.sendChunk(chunk);
+        AudioStreamer existingStreamer = activeStreams.get(client);
+        if (existingStreamer != null) {
+            if (existingStreamer.track().equals(track)) {
+                throw new SourceAlreadyExistsException("Song '" + title + "' already playing...");
             }
-
-            streamer.endStream();
-            return new Response(200, "Playback finished", null);
-        } catch (Exception e) {
-            System.err.println("Error during playback: " + e.getMessage());
-            return Response.err();
+            activeStreams.remove(client);
+            existingStreamer.endStream();
         }
+
+        AudioStreamer streamer = new AudioStreamer(client, track);
+        activeStreams.put(client, streamer);
+
+        track.incrementPlayCount();
+        streamer.startStream();
     }
 
-    public Response stopStreamingTrack(ResponseSender client) throws IOException {
-        AudioStreamer streamer = new AudioStreamer(client);
+    public void stopStreamingTrack(ResponseSender client) {
+        AudioStreamer streamer = activeStreams.remove(client);
+
+        if (streamer == null) {
+            throw new ValidationException("Nothing was playing");
+        }
+    
         streamer.endStream();
         return new Response(200, "Playback finished", null);
     }
