@@ -4,8 +4,8 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.Set;
 
-public record UserDTO(String email, Set<String> playlistIds) implements Serializable {
+public record UserDTO(String email, Set<String> playlistNames) implements Serializable {
     public UserDTO {
-        playlistIds = Collections.unmodifiableSet(playlistIds);
+        playlistNames = Collections.unmodifiableSet(playlistNames);
     }
 }

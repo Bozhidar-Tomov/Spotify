@@ -6,17 +6,18 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
+import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.SourceAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.spotify.common.models.UserDTO;
 
 public class UserEntity implements Serializable {
     private final String email;
     private final Password password;
-    private final Set<String> playlistIds;
+    private final Set<String> playlistNames;
 
     private UserEntity(String email, Password password, Set<String> playlistIds) {
         this.email = email;
         this.password = password;
-        this.playlistIds = new HashSet<>(playlistIds);
+        this.playlistNames = new HashSet<>(playlistIds);
     }
 
     public UserEntity(String email, Password password) {
@@ -26,7 +27,7 @@ public class UserEntity implements Serializable {
 
         this.email = email;
         this.password = password;
-        this.playlistIds = new HashSet<>();
+        this.playlistNames = new HashSet<>();
     }
 
     public String email() {
@@ -38,23 +39,24 @@ public class UserEntity implements Serializable {
     }
 
     public Set<String> playlistIds() {
-        return Collections.unmodifiableSet(playlistIds);
+        return Collections.unmodifiableSet(playlistNames);
     }
 
-    public void addPlaylist(String id) {
-        // TODO: system should check if playlist with that id exists
-        if (id == null || id.isBlank()) {
+    public void addPlaylist(String name) {
+        if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Playlist ID cannot be null or empty");
         }
-        this.playlistIds.add(id);
+        if (!playlistNames.add(name)) {
+            throw new SourceAlreadyExistsException("Playlist '" + name + "' already exists.");
+        }
     }
 
     public UserDTO toDTO() {
-        return new UserDTO(email, playlistIds);
+        return new UserDTO(email, playlistNames);
     }
 
     public static UserEntity fromDTO(UserDTO dto, Password password) {
-        return new UserEntity(dto.email(), password, dto.playlistIds());
+        return new UserEntity(dto.email(), password, dto.playlistNames());
     }
 
     @Override

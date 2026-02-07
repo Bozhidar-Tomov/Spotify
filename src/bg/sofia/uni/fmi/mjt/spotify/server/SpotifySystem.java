@@ -220,7 +220,7 @@ public final class SpotifySystem {
         return user.toDTO();
     }
 
-    public void createPlaylist(String playlistName, ResponseSender client) {
+    public UserDTO createPlaylist(String playlistName, ResponseSender client) {
         if (client == null || playlistName == null || playlistName.isBlank()) {
             throw new ValidationException("User and playlist name cannot be empty.");
         }
@@ -231,7 +231,8 @@ public final class SpotifySystem {
             throw new AuthenticationException("You must be logged in to create a playlist.");
         }
 
-        if (!usersByEmail.containsKey(userEmail)) {
+        UserEntity user = usersByEmail.get(userEmail);
+        if (user == null) {
             throw new SourceNotFoundException("User not found.");
         }
 
@@ -239,6 +240,7 @@ public final class SpotifySystem {
             if (playlists == null) {
                 playlists = new ArrayList<>();
                 playlists.add(new Playlist(playlistName, email));
+                user.addPlaylist(playlistName);
                 return playlists;
             }
 
@@ -250,8 +252,11 @@ public final class SpotifySystem {
             }
 
             playlists.add(new Playlist(playlistName, email));
+            user.addPlaylist(playlistName);
             return playlists;
         });
+
+        return user.toDTO();
     }
     
     public void addSongToPlaylist(String playlistName, String songTitle, ResponseSender client) {
@@ -345,7 +350,7 @@ public final class SpotifySystem {
         if (streamer == null) {
             throw new ValidationException("Nothing was playing");
         }
-    
+
         streamer.endStream();
     }
 

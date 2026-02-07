@@ -5,8 +5,10 @@ import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.AuthenticationException;
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.SourceAlreadyExistsException;
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.SourceNotFoundException;
 import bg.sofia.uni.fmi.mjt.spotify.common.exceptions.ValidationException;
+import bg.sofia.uni.fmi.mjt.spotify.common.models.UserDTO;
 import bg.sofia.uni.fmi.mjt.spotify.common.net.Response;
 import bg.sofia.uni.fmi.mjt.spotify.common.net.ResponseSender;
+import bg.sofia.uni.fmi.mjt.spotify.common.net.UserDtoPayload;
 import bg.sofia.uni.fmi.mjt.spotify.server.SpotifySystem;
 import java.util.List;
 
@@ -24,8 +26,8 @@ public class CreatePlaylistCommand implements Command {
         String playlistName = args.get(0);
 
         try {
-            system.createPlaylist(playlistName, client);
-            return new Response(200, "Playlist created.", null);
+            UserDTO user = system.createPlaylist(playlistName, client);
+            return new Response(200, "Playlist created.", new UserDtoPayload(user));
         } catch(ValidationException e){
             return new Response(400, "Request: " + e.getMessage(), null);
         } catch(AuthenticationException e){
