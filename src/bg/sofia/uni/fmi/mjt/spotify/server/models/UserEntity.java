@@ -14,12 +14,6 @@ public class UserEntity implements Serializable {
     private final Password password;
     private final Set<String> playlistNames;
 
-    private UserEntity(String email, Password password, Set<String> playlistIds) {
-        this.email = email;
-        this.password = password;
-        this.playlistNames = new HashSet<>(playlistIds);
-    }
-
     public UserEntity(String email, Password password) {
         if (email == null || password == null) {
             throw new IllegalArgumentException("User email or password cannot be null.");
@@ -53,10 +47,6 @@ public class UserEntity implements Serializable {
 
     public UserDTO toDTO() {
         return new UserDTO(email, playlistNames);
-    }
-
-    public static UserEntity fromDTO(UserDTO dto, Password password) {
-        return new UserEntity(dto.email(), password, dto.playlistNames());
     }
 
     @Override

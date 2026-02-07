@@ -114,6 +114,19 @@ public final class DataManager {
         loadUsers(usersByEmail);
         loadPlaylists(playlistsByEmail);
         loadTracks(tracksByTitle);
+
+        // Rebuild/Sync playlist names in UserEntities from loaded playlists to ensure
+        // consistency
+        playlistsByEmail.forEach((email, playlists) -> {
+            UserEntity user = usersByEmail.get(email);
+            if (user != null) {
+                playlists.forEach(p -> {
+                    if (!user.playlistIds().contains(p.name())) {
+                        user.addPlaylist(p.name());
+                    }
+                });
+            }
+        });
     }
 
     public static void loadUsers(Map<String, UserEntity> usersByEmail) throws IOException {

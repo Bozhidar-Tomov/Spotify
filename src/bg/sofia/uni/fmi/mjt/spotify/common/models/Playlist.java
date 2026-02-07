@@ -45,10 +45,8 @@ public class Playlist implements Serializable {
 
         if (!trackIds.add(trackId)) {
             throw new AmbiguousSourceException(
-                    "Track with ID " + trackId + "already present in playlist " + name);
+                    "Track with ID " + trackId + " already present in playlist " + name);
         }
-        
-        this.trackIds.add(trackId);
     }
 
     @Override
@@ -60,11 +58,11 @@ public class Playlist implements Serializable {
             return false;
 
         Playlist playlist = (Playlist) o;
-        return Objects.equals(ownerEmail, playlist.ownerEmail);
+        return Objects.equals(name, playlist.name) && Objects.equals(ownerEmail, playlist.ownerEmail);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(ownerEmail);
+        return Objects.hash(name, ownerEmail);
     }
 }
