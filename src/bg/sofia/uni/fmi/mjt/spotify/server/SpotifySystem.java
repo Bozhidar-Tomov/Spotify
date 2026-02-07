@@ -415,4 +415,28 @@ public final class SpotifySystem {
                 .filter(track -> track != null)
                 .toList();
     }
+
+    public List<Track> search(List<String> keywords) {
+        if (keywords == null || keywords.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> lowerCaseKeywords = keywords.stream()
+                .filter(keyword -> keyword != null && !keyword.isBlank())
+                .map(String::toLowerCase)
+                .toList();
+
+        if (lowerCaseKeywords.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return tracksById.values().stream()
+                .filter(track -> {
+                    String title = track.metadata().title().toLowerCase();
+                    String artist = track.metadata().artist().toLowerCase();
+
+                    return lowerCaseKeywords.stream().allMatch(k -> title.contains(k) || artist.contains(k));
+                })
+                .toList();
+    }
 }
