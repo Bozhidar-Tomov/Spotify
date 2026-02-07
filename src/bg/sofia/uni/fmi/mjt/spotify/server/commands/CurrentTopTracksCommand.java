@@ -12,7 +12,7 @@ public class CurrentTopTracksCommand implements Command {
     @Override
     public Response execute(List<String> args, SpotifySystem system) {
         if (args.size() != 1) {
-            return new Response(400, "Usage: ??? <number>", null);
+            return new Response(400, "Usage: top <number>", null);
         }
 
         if (system == null || !system.isRunning()) {

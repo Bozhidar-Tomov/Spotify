@@ -64,7 +64,7 @@ public final class SpotifySystem {
     private final Map<String, Set<Playlist>> playlistsByEmail = new ConcurrentHashMap<>();
     private final Map<String, List<Track>> tracksByTitle = new ConcurrentHashMap<>();
     private final Map<String, Track> tracksById = new ConcurrentHashMap<>();
-    
+
     private final Map<ResponseSender, AudioStreamer> activeStreams = new ConcurrentHashMap<>();
     private final Map<ResponseSender, String> userSessions = new ConcurrentHashMap<>();
 
@@ -87,6 +87,7 @@ public final class SpotifySystem {
 
     public void loadData() throws IOException {
         DataManager.load(usersByEmail, playlistsByEmail, tracksByTitle);
+        tracksByTitle.values().forEach(list -> list.forEach(track -> tracksById.put(track.metadata().id(), track)));
     }
 
     public void saveData() throws IOException {
@@ -279,7 +280,7 @@ public final class SpotifySystem {
 
         return user.toDTO();
     }
-    
+
     public void addSongToPlaylist(String playlistName, String songTitle, ResponseSender client) {
         if (client == null || playlistName == null || songTitle == null || playlistName.isBlank()
                 || songTitle.isBlank()) {
@@ -345,6 +346,10 @@ public final class SpotifySystem {
     public void streamTrack(String title, ResponseSender client) {
         if (client == null || title == null || title.isBlank()) {
             throw new ValidationException("Title cannot be null");
+        }
+
+        if (getUserEmail(client) == null) {
+            throw new AuthenticationException("You must be logged in to create a playlist.");
         }
 
         Track track = getTrack(title);

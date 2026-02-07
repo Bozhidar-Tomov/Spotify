@@ -115,8 +115,6 @@ public final class DataManager {
         loadPlaylists(playlistsByEmail);
         loadTracks(tracksByTitle);
 
-        // Rebuild/Sync playlist names in UserEntities from loaded playlists to ensure
-        // consistency
         playlistsByEmail.forEach((email, playlists) -> {
             UserEntity user = usersByEmail.get(email);
             if (user != null) {
