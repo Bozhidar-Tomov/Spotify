@@ -347,6 +347,23 @@ public final class SpotifySystem {
         }
     
         streamer.endStream();
-        return new Response(200, "Playback finished", null);
+    }
+
+    public List<Track> topGlobalPlayingTracks(long n) {
+        return tracksById.values().stream()
+                .sorted(Comparator.comparingLong(Track::playCount).reversed())
+                .limit(n)
+                .toList();
+    }
+
+    public List<Track> topCurrentPlayingTracks(long n) {
+        return activeStreams.values().stream()
+                .map(AudioStreamer::track)
+                .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()))
+                .entrySet().stream()
+                .sorted(Map.Entry.<Track, Long>comparingByValue().reversed())
+                .limit(n)
+                .map(Map.Entry::getKey)
+                .toList();
     }
 }
