@@ -27,10 +27,10 @@ import bg.sofia.uni.fmi.mjt.spotify.server.models.UserEntityWrapper;
 
 public final class DataManager {
     private static final Gson gson = new Gson();
-    private static final Path ROOT_DATA_DIR = Path.of("./");
-    private static final Path USERS_FILE = ROOT_DATA_DIR.resolve("activeUsers.bin");
-    private static final Path PLAYLISTS_FILE = ROOT_DATA_DIR.resolve("playlists.json");
-    private static final Path TRACKS_FILE = ROOT_DATA_DIR.resolve("tracks.json");
+    private static Path rootDataDir = Path.of("./");
+    private static Path usersFile = rootDataDir.resolve("activeUsers.bin");
+    private static Path playlistsFile = rootDataDir.resolve("playlists.json");
+    private static Path tracksFile = rootDataDir.resolve("tracks.json");
 
     private DataManager() {
         throw new IllegalStateException("Utility class: do not instantiate.");
@@ -41,7 +41,7 @@ public final class DataManager {
             throw new IllegalArgumentException("Path to save to cannot be null");
         }
 
-        if (data == null) {
+        if (data == null || data.data() == null) {
             throw new IllegalArgumentException("Data to save cannot be null");
         }
 
@@ -55,20 +55,30 @@ public final class DataManager {
         }
     }
 
-    private static <T, W extends DataWrapper<T>> void loadFromJsonFile(Path path, Class<W> wrapperClass,
+    private static <T> void loadFromJsonFile(
+            Path path,
+            Class<? extends DataWrapper<T>> wrapperClass,
             Map<String, T> targetMap) throws IOException {
+
+        if (path == null || wrapperClass == null || targetMap == null) {
+            throw new IllegalArgumentException("Arguments cannot be null.");
+        }
+
         if (!Files.exists(path)) {
             return;
         }
 
         try (BufferedReader reader = Files.newBufferedReader(path)) {
-            W dataRead = gson.fromJson(reader, wrapperClass);
+            DataWrapper<T> dataRead = gson.fromJson(reader, wrapperClass);
 
             if (dataRead == null || dataRead.data() == null) {
-                throw new IOException(path.getFileName() + " file malformed or empty.");
+                throw new IOException("JSON structure in " + path.getFileName() + " is invalid or missing data.");
             }
 
             targetMap.putAll(dataRead.data());
+
+        } catch (Exception e) {
+            throw new IOException("Error processing JSON file: " + path, e);
         }
     }
 
@@ -80,22 +90,14 @@ public final class DataManager {
         saveTracks(tracksByTitle);
     }
 
-    public static void savePlaylists(Map<String, Set<Playlist>> playlistsByEmail) throws IOException {
-        saveToJsonFile(PLAYLISTS_FILE, new PlaylistWrapper(playlistsByEmail));
-    }
-
-    public static void saveTracks(Map<String, List<Track>> tracksByTitle) throws IOException {
-        saveToJsonFile(TRACKS_FILE, new TrackWrapper(tracksByTitle));
-    }
-
     public static void saveUsers(Map<String, UserEntity> usersByEmail) throws IOException {
         if (usersByEmail == null) {
             throw new IllegalArgumentException("Target map cannot be null");
         }
 
-        Files.createDirectories(USERS_FILE.getParent());
-        if (!Files.exists(USERS_FILE)) {
-            Files.createFile(USERS_FILE);
+        Files.createDirectories(usersFile.getParent());
+        if (!Files.exists(usersFile)) {
+            Files.createFile(usersFile);
         }
 
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -104,8 +106,16 @@ public final class DataManager {
             oos.writeObject(new UserEntityWrapper(usersByEmail));
             byte[] allBytes = bos.toByteArray();
 
-            Files.write(USERS_FILE, allBytes);
+            Files.write(usersFile, allBytes);
         }
+    }
+
+    public static void savePlaylists(Map<String, Set<Playlist>> playlistsByEmail) throws IOException {
+        saveToJsonFile(playlistsFile, new PlaylistWrapper(playlistsByEmail));
+    }
+
+    public static void saveTracks(Map<String, List<Track>> tracksByTitle) throws IOException {
+        saveToJsonFile(tracksFile, new TrackWrapper(tracksByTitle));
     }
 
     public static void load(Map<String, UserEntity> usersByEmail, Map<String, Set<Playlist>> playlistsByEmail,
@@ -119,7 +129,7 @@ public final class DataManager {
             UserEntity user = usersByEmail.get(email);
             if (user != null) {
                 playlists.forEach(p -> {
-                    if (!user.playlistIds().contains(p.name())) {
+                    if (!user.playlistNames().contains(p.name())) {
                         user.addPlaylist(p.name());
                     }
                 });
@@ -132,43 +142,52 @@ public final class DataManager {
             throw new IllegalArgumentException("Target map cannot be null");
         }
 
-        if (!Files.exists(USERS_FILE)) {
+        if (!Files.exists(usersFile)) {
             return;
         }
 
-        try (InputStream fis = Files.newInputStream(USERS_FILE);
+        try (InputStream fis = Files.newInputStream(usersFile);
                 BufferedInputStream bis = new BufferedInputStream(fis);
                 ObjectInputStream ois = new ObjectInputStream(bis)) {
 
-            Object data;
-            try {
-                data = ois.readObject();
-            } catch (ClassNotFoundException e) {
-                throw new IOException("Cannot construct Object", e);
-            }
+            Object data = ois.readObject();
 
             if (data instanceof UserEntityWrapper wrapper) {
-                usersByEmail.putAll(wrapper.data());
-            } else if (data instanceof Map<?, ?> loadedMap) {
-                for (Map.Entry<?, ?> entry : loadedMap.entrySet()) {
-                    if (entry.getKey() instanceof String email && entry.getValue() instanceof UserEntity user) {
-                        if (email == null ||
-                                user.email() == null ||
-                                user.password() == null) {
-                            throw new IOException("Data corrupted - null fields.");
-                        }
-                        usersByEmail.put(email, user);
+                Map<String, UserEntity> loadedData = wrapper.data();
+
+                for (Map.Entry<String, UserEntity> entry : loadedData.entrySet()) {
+                    UserEntity user = entry.getValue();
+                    if (entry.getKey() == null || user == null || user.email() == null || user.password() == null) {
+                        throw new IOException("Data corrupted - null fields.");
                     }
                 }
+
+                usersByEmail.putAll(loadedData);
+            } else {
+                throw new IOException("Unexpected data format: Expected UserEntityWrapper but found " +
+                        (data == null ? "null" : data.getClass().getName()));
             }
+
+        } catch (ClassNotFoundException e) {
+            throw new IOException("Class definition not found during deserialization", e);
         }
     }
 
     public static void loadPlaylists(Map<String, Set<Playlist>> playlistsByEmail) throws IOException {
-        loadFromJsonFile(PLAYLISTS_FILE, PlaylistWrapper.class, playlistsByEmail);
+        loadFromJsonFile(playlistsFile, PlaylistWrapper.class, playlistsByEmail);
     }
 
     public static void loadTracks(Map<String, List<Track>> tracksByTitle) throws IOException {
-        loadFromJsonFile(TRACKS_FILE, TrackWrapper.class, tracksByTitle);
+        loadFromJsonFile(tracksFile, TrackWrapper.class, tracksByTitle);
+    }
+
+    public static void setDataDirectory(Path path) {
+        if (path == null) {
+            throw new IllegalArgumentException("Data directory path cannot be null");
+        }
+        rootDataDir = path;
+        usersFile = rootDataDir.resolve("activeUsers.bin");
+        playlistsFile = rootDataDir.resolve("playlists.json");
+        tracksFile = rootDataDir.resolve("tracks.json");
     }
 }

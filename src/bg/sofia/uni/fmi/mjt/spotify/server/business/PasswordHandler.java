@@ -10,6 +10,10 @@ import java.security.SecureRandom;
 public final class PasswordHandler {
     private static final int ITERATIONS = 4096;
 
+    private PasswordHandler() {
+        throw new IllegalStateException("Utility class: do not instantiate.");
+    }
+
     public static Password hashPassword(String password) throws NoSuchAlgorithmException {
         SecureRandom random = new SecureRandom();
         byte[] salt = new byte[32];

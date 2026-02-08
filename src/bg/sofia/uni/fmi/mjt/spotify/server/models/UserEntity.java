@@ -32,7 +32,7 @@ public class UserEntity implements Serializable {
         return password;
     }
 
-    public Set<String> playlistIds() {
+    public Set<String> playlistNames() {
         return Collections.unmodifiableSet(playlistNames);
     }
 
