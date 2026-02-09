@@ -368,6 +368,7 @@ public final class SpotifySystem {
 
         track.incrementPlayCount();
         streamer.startStream();
+        System.out.println("Streaming '" + track.metadata().title() + "' to user: " + getUserEmail(client));
     }
 
     public void stopStreamingTrack(ResponseSender client) {
@@ -378,6 +379,9 @@ public final class SpotifySystem {
         }
 
         streamer.endStream();
+        System.out.println(
+                "Stopped streaming '" + streamer.track().metadata().title() + "' for user: " + getUserEmail(client));
+
     }
 
     public List<Track> topGlobalPlayingTracks(long n) {
