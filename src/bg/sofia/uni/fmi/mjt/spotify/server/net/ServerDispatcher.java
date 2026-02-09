@@ -133,9 +133,11 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
             key.interestOps(0);
             executor.execute(new RequestHandler(key, system));
         } catch (RejectedExecutionException e) {
-            System.err.println("Server busy or shutting down. Closing client connection.");
+            System.err.println(
+                "Server busy, pool exhausted or or shutting down.Closing client connection.");
             cancelKey(key);
         } catch (CancelledKeyException e) {
+            System.err.println("Key already cancelled");
             cancelKey(key);
         } catch (Exception e) {
             System.err.println("Error during processing client request: " + e.getMessage());
@@ -148,8 +150,12 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
             if (key == null) {
                 return;
             }
-            key.channel().close();
             key.cancel();
+
+            if (key.channel() == null) {
+                return;
+            }
+            key.channel().close();
         } catch (IOException e) {
             System.err.println("Error closing key/channel: " + e.getMessage());
         }
