@@ -19,13 +19,24 @@ import java.util.concurrent.Executors;
 public class AudioStreamer {
     private static final int BUFFER_SIZE = 4096;
     private final ResponseSender sender;
-    private final ExecutorService executor;
     private final Track track;
+    private final ExecutorService executor;
 
     public AudioStreamer(ResponseSender sender, Track track) {
+        if (sender == null || track == null) {
+            throw new IllegalArgumentException("Sender and track cannot be null"); 
+        }
+        this(sender, track, Executors.newSingleThreadExecutor(Thread.ofVirtual().factory()));
+    }
+
+    public AudioStreamer(ResponseSender sender, Track track, ExecutorService executor) {
+        if (executor == null) {
+            throw new IllegalArgumentException("Executor Service cannot be null");
+        }
+        
         this.sender = sender;
-        this.executor = Executors.newSingleThreadExecutor(Thread.ofVirtual().factory());
         this.track = track;
+        this.executor = executor;
     }
 
     public void startStream() {
@@ -39,21 +50,15 @@ public class AudioStreamer {
                 byte[] buffer = new byte[BUFFER_SIZE];
                 int bytesRead;
 
-                // HACK
-                int i = 0;
-
                 while (!Thread.currentThread().isInterrupted() && (bytesRead = audioStream.read(buffer)) != -1) {
                     byte[] chunk = (bytesRead == buffer.length) ? buffer : Arrays.copyOf(buffer, bytesRead);
                     sender.sendResponse(new Response(200, "STREAM", new BinaryPayload(chunk)));
-                    if (i % 100 == 0) {
-                        System.out.println("STREAMING #chunk " + i);
-                    }
-                    ++i;
                 }
 
-                endStream();
             } catch (Exception e) {
                 System.err.println("Error during playback of " + track.metadata().title() + ": " + e.getMessage());
+            } finally {
+                endStream();
             }
         });
     }
