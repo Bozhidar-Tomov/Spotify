@@ -8,7 +8,7 @@ public record Response(
     Payload payload) implements Serializable {
         
     public static Response err() {
-        final int errCode = INTERNAL_SERVER_ERROR;
+        final int errCode = 500;
         return new Response(errCode, "Internal server error.", null);
     }
 }

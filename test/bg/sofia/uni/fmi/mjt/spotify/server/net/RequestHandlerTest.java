@@ -65,7 +65,7 @@ class RequestHandlerTest {
         String requestString = "login user pass";
 
         Response mockResponse = mock(Response.class);
-        when(mockResponse.statusCode()).thenReturn(OK);
+        when(mockResponse.statusCode()).thenReturn(200);
         when(mockResponse.message()).thenReturn("Welcome");
 
         buffer.clear();
@@ -140,7 +140,7 @@ class RequestHandlerTest {
             handler.run();
 
             verify(responseSenderMock)
-                    .sendResponse(argThat(r -> r.statusCode() == INTERNAL_SERVER_ERROR && r.message().equals("Internal server error.")));
+                    .sendResponse(argThat(r -> r.statusCode() == 500 && r.message().equals("Internal server error.")));
         }
     }
 
@@ -155,7 +155,7 @@ class RequestHandlerTest {
 
         try (MockedStatic<CommandDispatcher> dispatcherMock = mockStatic(CommandDispatcher.class)) {
             dispatcherMock.when(() -> CommandDispatcher.dispatch(any(), any(), any()))
-                    .thenReturn(new Response(OK, "OK", null));
+                    .thenReturn(new Response(200, "OK", null));
 
             doThrow(new IOException("Write failed")).when(responseSenderMock).sendResponse(any());
 
@@ -182,14 +182,14 @@ class RequestHandlerTest {
                     .thenThrow(new RuntimeException("Something went wrong"));
 
             doThrow(new IOException("Failed to send error response")).when(responseSenderMock)
-                    .sendResponse(argThat(r -> r.statusCode() == INTERNAL_SERVER_ERROR));
+                    .sendResponse(argThat(r -> r.statusCode() == 500));
 
             RequestHandler handler = createHandlerWithMockSender();
             handler.run();
 
             verify(selectionKeyMock).cancel();
             verify(socketChannelMock).close();
-            verify(responseSenderMock).sendResponse(argThat(r -> r.statusCode() == INTERNAL_SERVER_ERROR));
+            verify(responseSenderMock).sendResponse(argThat(r -> r.statusCode() == 500));
         }
     }
 }

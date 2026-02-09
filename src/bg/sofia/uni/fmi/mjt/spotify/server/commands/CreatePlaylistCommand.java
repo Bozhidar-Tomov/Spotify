@@ -28,13 +28,13 @@ public class CreatePlaylistCommand implements Command {
         try {
             UserDTO user = system.createPlaylist(playlistName, client);
             return new Response(OK, "Playlist created.", new UserDtoPayload(user));
-        } catch (ValidationException e){
+        } catch (ValidationException e) {
             return new Response(BAD_REQUEST, "Request: " + e.getMessage(), null);
-        } catch (AuthenticationException e){
+        } catch (AuthenticationException e) {
             return new Response(UNAUTHORIZED, "Auth: " + e.getMessage(), null);
-        } catch (SourceNotFoundException e){
+        } catch (SourceNotFoundException e) {
             return new Response(NOT_FOUND, "Missing: " + e.getMessage(), null);
-        } catch (SourceAlreadyExistsException | AmbiguousSourceException e){
+        } catch (SourceAlreadyExistsException | AmbiguousSourceException e) {
             return new Response(CONFLICT, "Conflict: " + e.getMessage(), null);
         } catch (Exception e) {
             return Response.err();

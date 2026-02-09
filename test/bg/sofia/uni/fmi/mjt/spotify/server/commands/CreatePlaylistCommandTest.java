@@ -40,7 +40,7 @@ public class CreatePlaylistCommandTest {
     @Test
     void testExecuteInvalidArgsCount() {
         Response response = command.execute(List.of(), systemMock, clientMock);
-        assertEquals(BAD_REQUEST, response.statusCode());
+        assertEquals(400, response.statusCode());
         assertEquals("Usage: create-playlist <playlist_name>", response.message());
     }
 
@@ -48,7 +48,7 @@ public class CreatePlaylistCommandTest {
     void testExecuteSystemNotRunning() {
         when(systemMock.isRunning()).thenReturn(false);
         Response response = command.execute(List.of("p"), systemMock, clientMock);
-        assertEquals(INTERNAL_SERVER_ERROR, response.statusCode());
+        assertEquals(500, response.statusCode());
     }
 
     @Test
@@ -59,7 +59,7 @@ public class CreatePlaylistCommandTest {
         Response response = command.execute(List.of("p"), systemMock, clientMock);
 
         verify(systemMock).createPlaylist("p", clientMock);
-        assertEquals(OK, response.statusCode());
+        assertEquals(200, response.statusCode());
         assertEquals("Playlist created.", response.message());
     }
 
@@ -67,7 +67,7 @@ public class CreatePlaylistCommandTest {
     void testExecuteValidationException() throws Exception {
         doThrow(new ValidationException("Error")).when(systemMock).createPlaylist("p", clientMock);
         Response response = command.execute(List.of("p"), systemMock, clientMock);
-        assertEquals(BAD_REQUEST, response.statusCode());
+        assertEquals(400, response.statusCode());
         assertEquals("Request: Error", response.message());
     }
 
@@ -75,7 +75,7 @@ public class CreatePlaylistCommandTest {
     void testExecuteAuthenticationException() throws Exception {
         doThrow(new AuthenticationException("Error")).when(systemMock).createPlaylist("p", clientMock);
         Response response = command.execute(List.of("p"), systemMock, clientMock);
-        assertEquals(UNAUTHORIZED, response.statusCode());
+        assertEquals(401, response.statusCode());
         assertEquals("Auth: Error", response.message());
     }
 
@@ -83,7 +83,7 @@ public class CreatePlaylistCommandTest {
     void testExecuteSourceAlreadyExistsException() throws Exception {
         doThrow(new SourceAlreadyExistsException("Error")).when(systemMock).createPlaylist("p", clientMock);
         Response response = command.execute(List.of("p"), systemMock, clientMock);
-        assertEquals(CONFLICT, response.statusCode());
+        assertEquals(409, response.statusCode());
         assertEquals("Conflict: Error", response.message());
     }
 }

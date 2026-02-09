@@ -31,7 +31,7 @@ public class CurrentTopTracksCommandTest {
     @Test
     void testExecuteInvalidArgsCount() {
         Response response = command.execute(List.of(), systemMock);
-        assertEquals(BAD_REQUEST, response.statusCode());
+        assertEquals(400, response.statusCode());
         assertEquals("Usage: top <number>", response.message());
     }
 
@@ -39,20 +39,20 @@ public class CurrentTopTracksCommandTest {
     void testExecuteSystemNotRunning() {
         when(systemMock.isRunning()).thenReturn(false);
         Response response = command.execute(List.of("5"), systemMock);
-        assertEquals(INTERNAL_SERVER_ERROR, response.statusCode());
+        assertEquals(500, response.statusCode());
     }
 
     @Test
     void testExecuteNegativeNumber() {
         Response response = command.execute(List.of("-1"), systemMock);
-        assertEquals(BAD_REQUEST, response.statusCode());
+        assertEquals(400, response.statusCode());
         assertEquals("Must be positive integer.", response.message());
     }
 
     @Test
     void testExecuteInvalidNumberFormat() {
         Response response = command.execute(List.of("abc"), systemMock);
-        assertEquals(BAD_REQUEST, response.statusCode());
+        assertEquals(400, response.statusCode());
         assertEquals("Invalid number format: 'abc'", response.message());
     }
 
@@ -60,7 +60,7 @@ public class CurrentTopTracksCommandTest {
     void testExecuteNoTracks() {
         when(systemMock.topCurrentPlayingTracks(5)).thenReturn(Collections.emptyList());
         Response response = command.execute(List.of("5"), systemMock);
-        assertEquals(OK, response.statusCode());
+        assertEquals(200, response.statusCode());
         assertEquals("No tracks are currently being played.", response.message());
     }
 
@@ -69,7 +69,7 @@ public class CurrentTopTracksCommandTest {
         Track track = new Track(null);
         when(systemMock.topCurrentPlayingTracks(1)).thenReturn(List.of(track));
         Response response = command.execute(List.of("1"), systemMock);
-        assertEquals(OK, response.statusCode());
+        assertEquals(200, response.statusCode());
         assertEquals("OK", response.message());
     }
 }

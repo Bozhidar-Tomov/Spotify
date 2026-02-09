@@ -97,7 +97,7 @@ public class ResponseHandler implements Runnable {
     }
 
     private void handleGenericResponse(Response response) {
-        final int ok = OK;
+        final int ok = 200;
         if (response.statusCode() != ok) {
             System.err.println("Error: " + response.message());
         } else {

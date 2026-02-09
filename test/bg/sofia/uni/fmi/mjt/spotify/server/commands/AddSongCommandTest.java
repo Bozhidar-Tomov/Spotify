@@ -38,7 +38,7 @@ public class AddSongCommandTest {
     @Test
     void testExecuteInvalidArgsCount() {
         Response response = command.execute(List.of("playlist"), systemMock, clientMock);
-        assertEquals(BAD_REQUEST, response.statusCode());
+        assertEquals(400, response.statusCode());
         assertEquals("Usage: add-song-to <playlist_name> <song_name>", response.message());
     }
 
@@ -46,14 +46,14 @@ public class AddSongCommandTest {
     void testExecuteSystemNotRunning() {
         when(systemMock.isRunning()).thenReturn(false);
         Response response = command.execute(List.of("p", "s"), systemMock, clientMock);
-        assertEquals(INTERNAL_SERVER_ERROR, response.statusCode());
+        assertEquals(500, response.statusCode());
     }
 
     @Test
     void testExecuteSuccess() throws ValidationException, SourceNotFoundException, AuthenticationException {
         Response response = command.execute(List.of("p", "s"), systemMock, clientMock);
         verify(systemMock).addSongToPlaylist("p", "s", clientMock);
-        assertEquals(OK, response.statusCode());
+        assertEquals(200, response.statusCode());
         assertEquals("Song added to playlist.", response.message());
     }
 
@@ -61,7 +61,7 @@ public class AddSongCommandTest {
     void testExecuteValidationException() throws ValidationException, SourceNotFoundException, AuthenticationException {
         doThrow(new ValidationException("Error")).when(systemMock).addSongToPlaylist("p", "s", clientMock);
         Response response = command.execute(List.of("p", "s"), systemMock, clientMock);
-        assertEquals(BAD_REQUEST, response.statusCode());
+        assertEquals(400, response.statusCode());
         assertEquals("Request: Error", response.message());
     }
 
@@ -70,7 +70,7 @@ public class AddSongCommandTest {
             throws ValidationException, SourceNotFoundException, AuthenticationException {
         doThrow(new AuthenticationException("Error")).when(systemMock).addSongToPlaylist("p", "s", clientMock);
         Response response = command.execute(List.of("p", "s"), systemMock, clientMock);
-        assertEquals(UNAUTHORIZED, response.statusCode());
+        assertEquals(401, response.statusCode());
         assertEquals("Auth: Error", response.message());
     }
 
@@ -79,7 +79,7 @@ public class AddSongCommandTest {
             throws ValidationException, SourceNotFoundException, AuthenticationException {
         doThrow(new SourceNotFoundException("Error")).when(systemMock).addSongToPlaylist("p", "s", clientMock);
         Response response = command.execute(List.of("p", "s"), systemMock, clientMock);
-        assertEquals(NOT_FOUND, response.statusCode());
+        assertEquals(404, response.statusCode());
         assertEquals("Missing: Error", response.message());
     }
 }

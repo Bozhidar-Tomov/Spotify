@@ -36,7 +36,7 @@ public class StopCommandTest {
     @Test
     void testExecuteInvalidArgsCount() {
         Response response = command.execute(List.of("extra"), systemMock, clientMock);
-        assertEquals(BAD_REQUEST, response.statusCode());
+        assertEquals(400, response.statusCode());
         assertEquals("Usage: stop", response.message());
     }
 
@@ -44,14 +44,14 @@ public class StopCommandTest {
     void testExecuteSystemNotRunning() {
         when(systemMock.isRunning()).thenReturn(false);
         Response response = command.execute(List.of(), systemMock, clientMock);
-        assertEquals(INTERNAL_SERVER_ERROR, response.statusCode());
+        assertEquals(500, response.statusCode());
     }
 
     @Test
     void testExecuteSuccess() throws Exception {
         Response response = command.execute(List.of(), systemMock, clientMock);
         verify(systemMock).stopStreamingTrack(clientMock);
-        assertEquals(OK, response.statusCode());
+        assertEquals(200, response.statusCode());
         assertEquals("Stopped", response.message());
     }
 
@@ -59,7 +59,7 @@ public class StopCommandTest {
     void testExecuteValidationException() throws Exception {
         doThrow(new ValidationException("Error")).when(systemMock).stopStreamingTrack(clientMock);
         Response response = command.execute(List.of(), systemMock, clientMock);
-        assertEquals(BAD_REQUEST, response.statusCode());
+        assertEquals(400, response.statusCode());
         assertEquals("Request: Error", response.message());
     }
 }
