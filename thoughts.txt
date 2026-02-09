@@ -1,0 +1,163 @@
+As one of my last university projects, I intentionally wanted to make it overkill. In that way I get to practice various patterns, applying the knowledge I gathered from different courses.
+
+I will use the project in a CV, so i spent time designing the project architecture to show different industry standards as MVC, design pattern (Command, Consumer-Producer)
+
+resources: 
+https://rockthejvm.com/articles/the-ultimate-guide-to-java-virtual-threads
+https://www.baeldung.com/java-volatile
+
+In servernaim i use the pre java19 way of closing executors using shutdown and waiting, in serverdispatcher i use the new autoclosable interface with close(). I had to pick one of the two options:
+	Making ServerSocketChannel ExecutorService Selector final, opening the resources in constructor and closing with try-with-resources.
+	Opening the resources in setup and manually calling close() in stop method().
+I chose the second option because i dont want the constructor to throw a checked IOException.
+
+Problem on invoking serverdispatcher close method from servermain shutdown. Introducing tight coupling
+Implement autoclosable interface
+close () internally calls shutdown() and awaitTermination()
+
+
+Isrunning - volatile
+
+Why does dispatcher run() finally not invoke stop()?
+
+Process running forever after servermain calls stop and exits.
+Busy loop problem in serverdispatcher
+When selector is woken up forcefully due to interrupt select() returns 0;
+Busy loop because server main calling shutdown doesnt change isrunning to false, but interrupt flag is set so we should check for interrupted instead.
+
+Volatile
+
+
+Problem - song requires a lot of attributes so the client can  reconstruct the AudioFormat and open a SourceDataLine
+Cannot use record directly because the attributes are final, but we also want to stare playcount and update it. Solution: create record Song and wrap it in Track class
+What should the data request and response be structures? Different structure for restapi text requests  and binary music data
+
+Problem - the user object should have password field in server but not in client
+This is what made me research the topic and understand about Data Transfer Objects (DTO) pattern
+Where in the project directory should different types of user abstract object live? 
+https://www.baeldung.com/java-dto-pattern
+
+Problem how to decouple networking logic from business logic?
+
+problem using gson - raw types have to use
+From to json expects class reference, we lose the generic so v=cant do List<User>, we should use raw array User[] or a wrapper class, hence the reasoning behind implementing UserEntityWrapper
+
+=======================================================
+
+Problems found singleton get instance should be syncronized
+Concurrent data structures should be used
+
+user dto converted to record (textbook example)
+Coming to conclusion that userdto does not need to implement serializable because it will be sent over the network using buffers and client wont be saving (caching) it (idea for the future to implement caching on client side)
+
+Question: should user objects be in the server/business sub dir?
+
+Architecture in client:
+Design questions
+Silent system 
+
+I want to put listening to the server response in another thread so it doesnt block but i get the question who should close the reader passed to the listener?
+Ill do it from the new thread (runnable).
+
+Should the system listed for stdin commands or get them from main thread?
+
+Fixing server system singleton system to non block 
+Double checked locking 
+Executor implement autoclosable thats why close() works
+Shutdown async, close sync
+Calling executor.shutdownNow() in systemclient directly because we dont care what the server has to send when we already decided to siconnect
+
+
+Bug investigating. When diconnecting client gracefully the message was print Connection lost:
+It was happening because we first close the reader then the exectutor. So the reader throws an error in the xecutor instead of being interrupted. Fixed the order
+
+Client doesnt know if it receives text response or bytes for musc.it should by tytebuffer as well which is non-blocking. Then do we need serverlistener?
+ idea : use frame data server sends in 1byte TYPE, 4bytes SIZE, rest PAYLOAD  
+
+Focused too much on architecture and design rather to core functionality
+=======================================================
+
+How do design api and distinguish from user errors like wrong input from server errors like io, networking etc - using custom exceptions 
+Hashing passwords resource: https://www.baeldung.com/java-password-hashing
+
+https://dzone.com/articles/secure-password-hashing-in-java (using the simplest sha256 option, applying it several times as it is mentioned that other algos do it - using recursion)
+
+Should I salt 1 time and hash N times OR salt N times and hash N times?
+The Law of Diminishing Returns
+digest() resets the mg automatically. (cleaning the blender)
+
+==================================================================
+File format changed but gson doesnt return error , just makes the field null so i had to add manual check if all fields are populated verifyIntegrity
+
+Because userentity has hash and salt in binary, it is better to be stored in a bin format and use files.channel for fast io.
+Problem FileChannel operations are blocking, we want non-blocking
+Problem all fields need to get binary - using binary and object output dreams
+
+Type safety: Unchecked cast from Object to Map<String,UserEntity> we implement custom casting to be sure
+
+Files.readAllBytes() vs Files.newInputStream(USERS_FILE) - readAllBytes loads raw data to byte[] and then ObjectInputStream loads the objects. Using newInputStream data flows directly from the disk through the ObjectInputStream.
+
+Not secure - gadget attack - jvm blindly reconstructs objects from file which can me malicious
+
+==================================================================
+
+How to send binary data(music) and request response to client? I thought of using rest api but ill stick with using one socket connection. We will create a response object holding type, status code, message and payload
+
+Ще се възползваме от ООП и ще избегнем нуждата от статус 
+
+Problem with the oop herarchy The constructor Response(int, String, UserDtoPayload) is undefined why??? When the UserDtoPayload implements Payload interface aka IS A payload
+
+I was importing the old hierarchy :( 
+
+За да мога да продължа с основната функционалност а именно триймването на музика трябваше да оправя формата на данните които сървъра връща за да може клиента да направи разлика между бинарни данни за музика и команди като логин
+
+Problem - to stream music bytes data with the current design we need to pass the client handler which has sendresponse method. But we dont want to tightly couple commands with the client handler. So we create audiostreamer object composed in play audio command
+
+
+Problem use requesthandles.sendmessage from playcommand
+
+==================================================================
+//WHY: we save users as binary file because hashing has unprintable characters
+
+scheduleAtFixedRate vs scheduleWithFixedDelay - scheduleAtFixedRate - cares about the time clock. If a task takes longer than the next one, the delayed one starts immediately after to “catch up”. "back-to-back" I/O operations
+JDK Epoll Bug
+
+Fixing partial reads/fragmentation in parse request in request handler. Previously a command can come in two
+
+==================================================================
+Fixed command pattern polymorphism - removed context passing of client (requesthandler) in the server dispatch class only the check isinstanceof in command dispatch and
+Simple commands override the 2-arg execute method. The complex ones as streaming override the 3-arg execute. The dispatcher always calls the 3-arg one. If it is overridden, then the we dont touch the 2-arg one. If it is not, it goes to the default implementation that calls the 2-arg one. If it is not overridden as well, it throws unsupportedoperationexception. If it is, we take advantage of polymorphism and go to the correct implementation
+
+God object problem 
+circular dependency. the system spawns requesthandler which sends itself to command which sends it back to spotifysystem in playsong
+
+call-stack loop (
+System -> 
+Handler -> 
+Command -> 
+System
+ 
+Agnostic?? it is "blind" to the specific details of how another part of the system works. It doesn't know (and shouldn't care) about the environment it's running in.
+Dependency inversion?? 
+should requesthandler depend onresponsesender. should response handler have the sendmessage ans send implemented inside it, instead of them being in request handler??
+
+Circularity
+
+
+Bug found - request handler that is responsible for client’s connection to the server blocks on streaming a song. Solution - stream the song in a new thread. The question is where to create the new thread. In system or in requesthandler.
+
+In the context of your software architecture, saying a command is transient means it is created, does its job, and is immediately thrown away. It doesn't "live" in the memory of your program.
+
+We have to syncronize the send method on socketchannel, because it is the shared resourse (NOT this!) different instances of SocketResponseSender for different commands, but all on one client (socketchannel)
+Void syncronized f(){} syncs on this. We need void f(){syncronised(clientChannel){}}
+
+Audiostreamer should be stateful so we keep the streaming thread in order to interrupt it when stop command is invoked
+
+Using computeIfPresent because it is thread save 
+
+Atomiclong implements serializable
+
+==================================================================
+InvocationTargetException - if the underlying constructor throws an exception.
+
+https://www.baeldung.com/java-testing-multithreaded
