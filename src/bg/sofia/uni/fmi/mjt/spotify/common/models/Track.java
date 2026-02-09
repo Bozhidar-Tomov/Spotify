@@ -3,7 +3,7 @@ package bg.sofia.uni.fmi.mjt.spotify.common.models;
 import java.io.Serializable;
 import java.util.concurrent.atomic.AtomicLong;
 
-public final class Track implements Serializable{
+public final class Track implements Serializable {
     private final SongMetadata metadata;
     private AtomicLong playCount;
 

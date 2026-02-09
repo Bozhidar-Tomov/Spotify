@@ -39,7 +39,7 @@ public class PlaySongCommandTest {
     @Test
     void testExecuteInvalidArgsCount() {
         Response response = command.execute(List.of(), systemMock, clientMock);
-        assertEquals(400, response.statusCode());
+        assertEquals(BAD_REQUEST, response.statusCode());
         assertEquals("Usage: play <song name>", response.message());
     }
 
@@ -47,7 +47,7 @@ public class PlaySongCommandTest {
     void testExecuteSystemNotRunning() {
         when(systemMock.isRunning()).thenReturn(false);
         Response response = command.execute(List.of("song"), systemMock, clientMock);
-        assertEquals(500, response.statusCode());
+        assertEquals(INTERNAL_SERVER_ERROR, response.statusCode());
     }
 
     @Test
@@ -61,7 +61,7 @@ public class PlaySongCommandTest {
     void testExecuteValidationException() throws Exception {
         doThrow(new ValidationException("Error")).when(systemMock).streamTrack("song", clientMock);
         Response response = command.execute(List.of("song"), systemMock, clientMock);
-        assertEquals(400, response.statusCode());
+        assertEquals(BAD_REQUEST, response.statusCode());
         assertEquals("Request: Error", response.message());
     }
 
@@ -69,7 +69,7 @@ public class PlaySongCommandTest {
     void testExecuteAuthenticationException() throws Exception {
         doThrow(new AuthenticationException("Error")).when(systemMock).streamTrack("song", clientMock);
         Response response = command.execute(List.of("song"), systemMock, clientMock);
-        assertEquals(401, response.statusCode());
+        assertEquals(UNAUTHORIZED, response.statusCode());
         assertEquals("Auth: Error", response.message());
     }
 
@@ -77,7 +77,7 @@ public class PlaySongCommandTest {
     void testExecuteSourceNotFoundException() throws Exception {
         doThrow(new SourceNotFoundException("Error")).when(systemMock).streamTrack("song", clientMock);
         Response response = command.execute(List.of("song"), systemMock, clientMock);
-        assertEquals(404, response.statusCode());
+        assertEquals(NOT_FOUND, response.statusCode());
         assertEquals("Missing: Error", response.message());
     }
 }

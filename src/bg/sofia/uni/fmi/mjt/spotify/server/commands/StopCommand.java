@@ -15,14 +15,14 @@ public class StopCommand implements Command {
         }
 
         if (args == null || args.size() != 0) {
-            return new Response(400, "Usage: stop", null);
+            return new Response(BAD_REQUEST, "Usage: stop", null);
         }
 
         try {
             system.stopStreamingTrack(client);
-            return new Response(200, "Stopped", null);
+            return new Response(OK, "Stopped", null);
         } catch (ValidationException e) {
-            return new Response(400, "Request: " + e.getMessage(), null);
+            return new Response(BAD_REQUEST, "Request: " + e.getMessage(), null);
         } catch (InternalSystemException e) {
             return Response.err();
         } catch (Exception e) {

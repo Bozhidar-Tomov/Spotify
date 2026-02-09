@@ -14,49 +14,50 @@ public class ClientMain {
     }
 
     public static void main(String[] args) {
-        ClientMain client = new ClientMain(7777);
+        final int port = 7777;
+        ClientMain client = new ClientMain(port);
         client.start();
     }
 
     public void start() {
         System.out.println("Starting...");
-
         try {
             system.start(port);
+            ConsoleMenu.displayHeader();
+            runInputLoop();
         } catch (IllegalArgumentException e) {
             System.err.println("Invalid configuration: " + e.getMessage());
-            return;
         } catch (Exception e) {
             System.err.println("Error: Cannot start system: " + e.getMessage());
-            return;
-        }
-
-        ConsoleMenu.displayHeader();
-
-        try (Scanner scanner = new Scanner(System.in)) {
-            while (true) {
-                System.out.print("> ");
-                String message = scanner.nextLine().strip();
-
-                if (message.isEmpty()) {
-                    continue;
-                }
-
-                if (message.equalsIgnoreCase("disconnect")) {
-                    break;
-                }
-
-                if (message.equalsIgnoreCase("help")) {
-                    ConsoleMenu.displayCommands();
-                    continue;
-                }
-                system.getUserInput(message);
-            }
-        } catch (Exception e) {
-            System.err.println("An unexpected error occurred during input: " + e.getMessage());
         } finally {
             System.out.println("Shutting down...");
             system.stop();
+        }
+    }
+
+    private void runInputLoop() {
+        try (Scanner scanner = new Scanner(System.in)) {
+            while (true) {
+                System.out.print("> ");
+                String input = scanner.hasNextLine() ? scanner.nextLine().strip() : "disconnect";
+
+                if (input.isEmpty())
+                    continue;
+                if (input.equalsIgnoreCase("disconnect"))
+                    break;
+
+                processCommand(input);
+            }
+        } catch (Exception e) {
+            System.err.println("Unexpected error during input: " + e.getMessage());
+        }
+    }
+
+    private void processCommand(String message) {
+        if (message.equalsIgnoreCase("help")) {
+            ConsoleMenu.displayCommands();
+        } else {
+            system.getUserInput(message);
         }
     }
 }

@@ -11,7 +11,7 @@ public class RegisterCommand implements Command {
     @Override
     public Response execute(List<String> args, SpotifySystem system) {
         if (args == null || args.size() != 2) {
-            return new Response(400, "Usage: register <email> <password>", null);
+            return new Response(BAD_REQUEST, "Usage: register <email> <password>", null);
         }
         
         if (system == null || !system.isRunning()) {
@@ -23,9 +23,9 @@ public class RegisterCommand implements Command {
 
         try {
             system.registerUser(email, password);
-            return new Response(200, "Successful register. Now you can login", null);
+            return new Response(OK, "Successful register. Now you can login", null);
         } catch (ValidationException | AuthenticationException e) {
-            return new Response(401, "Register failed: " + e.getMessage(), null);
+            return new Response(UNAUTHORIZED, "Register failed: " + e.getMessage(), null);
         } catch (InternalSystemException e) {
             return Response.err();
         }

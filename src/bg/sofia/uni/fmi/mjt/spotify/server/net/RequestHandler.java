@@ -54,12 +54,10 @@ public class RequestHandler implements Runnable {
             if (response != null) {
                 sender.sendResponse(response);
             }
-
             if (clientChannel.isOpen() && key.isValid()) {
                 key.interestOps(SelectionKey.OP_READ);
                 key.selector().wakeup();
             }
-
         } catch (IOException e) {
             System.err.println("Network error with client " + clientChannel + ": " + e.getMessage());
             closeConnection();

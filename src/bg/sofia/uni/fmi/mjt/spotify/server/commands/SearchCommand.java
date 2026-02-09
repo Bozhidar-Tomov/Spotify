@@ -11,7 +11,7 @@ public class SearchCommand implements Command {
     @Override
     public Response execute(List<String> args, SpotifySystem system) {
         if (args == null || args.size() < 1) {
-            return new Response(400, "Usage: search <word_1> ... <word_N>", null);
+            return new Response(BAD_REQUEST, "Usage: search <word_1> ... <word_N>", null);
         }
 
         if (system == null || !system.isRunning()) {
@@ -21,11 +21,11 @@ public class SearchCommand implements Command {
         List<Track> result = system.search(args);
 
         if (result == null || result.isEmpty()) {
-            return new Response(200, "No tracks found.", null);
+            return new Response(OK, "No tracks found.", null);
         }
 
         try {
-            return new Response(200, "Found " + result.size() + " tracks.", new CollectionPayload<>(result));
+            return new Response(OK, "Found " + result.size() + " tracks.", new CollectionPayload<>(result));
         } catch (SpotifyException e) {
             return Response.err();
         }

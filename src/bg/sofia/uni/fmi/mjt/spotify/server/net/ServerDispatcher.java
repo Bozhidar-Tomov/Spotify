@@ -67,44 +67,45 @@ public class ServerDispatcher implements Runnable, AutoCloseable {
     private void runLoop() throws IOException {
         while (!Thread.currentThread().isInterrupted()) {
             try {
-                int readyChannels = selector.select();
-                if (readyChannels == 0) {
+                if (selector.select() == 0)
                     continue;
-                }
-
-                Set<SelectionKey> selectedKeys = selector.selectedKeys();
-                Iterator<SelectionKey> iterator = selectedKeys.iterator();
-
-                while (iterator.hasNext()) {
-                    SelectionKey key = iterator.next();
-                    iterator.remove();
-
-                    if (!key.isValid()) {
-                        continue;
-                    }
-
-                    try {
-                        if (key.isAcceptable()) {
-                            acceptClientRequest(key);
-                        }
-
-                        if (key.isReadable()) {
-                            readClientRequest(key);
-                        }
-                    } catch (Exception e) {
-                        System.err.println("Error handling client key: " + e.getMessage());
-                        cancelKey(key);
-                    }
-                }
+                processSelectedKeys(selector.selectedKeys());
             } catch (ClosedSelectorException e) {
                 break;
             } catch (IOException e) {
-                System.err.println("Error during select: " + e.getMessage());
-                if (!selector.isOpen()) {
+                if (handleLoopError(e))
                     break;
-                }
             }
         }
+    }
+
+    private void processSelectedKeys(Set<SelectionKey> selectedKeys) {
+        Iterator<SelectionKey> iterator = selectedKeys.iterator();
+        while (iterator.hasNext()) {
+            SelectionKey key = iterator.next();
+            iterator.remove();
+
+            if (key.isValid()) {
+                handleKey(key);
+            }
+        }
+    }
+
+    private void handleKey(SelectionKey key) {
+        try {
+            if (key.isAcceptable())
+                acceptClientRequest(key);
+            if (key.isReadable())
+                readClientRequest(key);
+        } catch (Exception e) {
+            System.err.println("Error handling client key: " + e.getMessage());
+            cancelKey(key);
+        }
+    }
+
+    private boolean handleLoopError(IOException e) {
+        System.err.println("Error during select: " + e.getMessage());
+        return !selector.isOpen();
     }
 
     private void acceptClientRequest(SelectionKey key) throws IOException {

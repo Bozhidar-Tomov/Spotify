@@ -40,19 +40,20 @@ public class AudioStreamer {
     }
 
     public void startStream() {
+        final int ok = 200;
         executor.execute(() -> {
             try (AudioInputStream audioStream = AudioSystem
                     .getAudioInputStream(new File(track.metadata().filePath()))) {
                 AudioFormat format = audioStream.getFormat();
                 sender.sendResponse(
-                        new Response(200, "Playing " + track.metadata().title(), AudioFormatPayload.from(format)));
+                        new Response(ok, "Playing " + track.metadata().title(), AudioFormatPayload.from(format)));
 
                 byte[] buffer = new byte[BUFFER_SIZE];
                 int bytesRead;
 
                 while (!Thread.currentThread().isInterrupted() && (bytesRead = audioStream.read(buffer)) != -1) {
                     byte[] chunk = (bytesRead == buffer.length) ? buffer : Arrays.copyOf(buffer, bytesRead);
-                    sender.sendResponse(new Response(200, "STREAM", new BinaryPayload(chunk)));
+                    sender.sendResponse(new Response(ok, "STREAM", new BinaryPayload(chunk)));
                 }
 
             } catch (Exception e) {
@@ -64,9 +65,10 @@ public class AudioStreamer {
     }
 
     public void endStream() {
+        final int ok = 200;
         executor.shutdownNow();
         try {
-            sender.sendResponse(new Response(200, "STREAM_END", null));
+            sender.sendResponse(new Response(ok, "STREAM_END", null));
         } catch (IOException e) {
             System.err.println("Error sending stream end response: " + e.getMessage());
             throw new InternalSystemException(null);

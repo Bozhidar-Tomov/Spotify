@@ -31,7 +31,7 @@ public class GlobalTopTracksCommandTest {
     @Test
     void testExecuteInvalidArgsCount() {
         Response response = command.execute(List.of(), systemMock);
-        assertEquals(400, response.statusCode());
+        assertEquals(BAD_REQUEST, response.statusCode());
         assertEquals("Usage: top-global <number>", response.message());
     }
 
@@ -39,20 +39,20 @@ public class GlobalTopTracksCommandTest {
     void testExecuteSystemNotRunning() {
         when(systemMock.isRunning()).thenReturn(false);
         Response response = command.execute(List.of("5"), systemMock);
-        assertEquals(500, response.statusCode());
+        assertEquals(INTERNAL_SERVER_ERROR, response.statusCode());
     }
 
     @Test
     void testExecuteNegativeNumber() {
         Response response = command.execute(List.of("-1"), systemMock);
-        assertEquals(400, response.statusCode());
+        assertEquals(BAD_REQUEST, response.statusCode());
         assertEquals("Must be positive integer.", response.message());
     }
 
     @Test
     void testExecuteInvalidNumberFormat() {
         Response response = command.execute(List.of("abc"), systemMock);
-        assertEquals(400, response.statusCode());
+        assertEquals(BAD_REQUEST, response.statusCode());
         assertEquals("Invalid number format: 'abc'", response.message());
     }
 
@@ -60,7 +60,7 @@ public class GlobalTopTracksCommandTest {
     void testExecuteNoTracks() {
         when(systemMock.topGlobalPlayingTracks(5)).thenReturn(Collections.emptyList());
         Response response = command.execute(List.of("5"), systemMock);
-        assertEquals(200, response.statusCode());
+        assertEquals(OK, response.statusCode());
         assertEquals("No tracks are globally played.", response.message());
     }
 
@@ -69,7 +69,7 @@ public class GlobalTopTracksCommandTest {
         Track track = new Track(null);
         when(systemMock.topGlobalPlayingTracks(1)).thenReturn(List.of(track));
         Response response = command.execute(List.of("1"), systemMock);
-        assertEquals(200, response.statusCode());
+        assertEquals(OK, response.statusCode());
         assertEquals("OK", response.message());
     }
 }

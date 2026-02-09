@@ -40,7 +40,7 @@ public class ResponseHandler implements Runnable {
 
                 handleResponse(response);
             }
-        } catch (ClosedChannelException e) {
+        } catch (ClosedChannelException _) {
             System.out.println("Connection closed.");
         } catch (Exception e) {
             System.err.println("Connection error: " + e.getMessage());
@@ -97,7 +97,8 @@ public class ResponseHandler implements Runnable {
     }
 
     private void handleGenericResponse(Response response) {
-        if (response.statusCode() != 200) {
+        final int ok = OK;
+        if (response.statusCode() != ok) {
             System.err.println("Error: " + response.message());
         } else {
             System.out.println(response.message());

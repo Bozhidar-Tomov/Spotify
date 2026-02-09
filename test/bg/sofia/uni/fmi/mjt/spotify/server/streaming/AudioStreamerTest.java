@@ -111,13 +111,13 @@ class AudioStreamerTest {
                 audioStreamer.startStream();
 
                 verify(senderMock, times(1))
-                        .sendResponse(argThat(r -> r.statusCode() == 200 && r.message().startsWith("Playing")));
+                        .sendResponse(argThat(r -> r.statusCode() == OK && r.message().startsWith("Playing")));
 
                 verify(senderMock, times(2))
-                        .sendResponse(argThat(r -> r.statusCode() == 200 && "STREAM".equals(r.message())));
+                        .sendResponse(argThat(r -> r.statusCode() == OK && "STREAM".equals(r.message())));
 
                 verify(senderMock, times(1))
-                        .sendResponse(argThat(r -> r.statusCode() == 200 && "STREAM_END".equals(r.message())));
+                        .sendResponse(argThat(r -> r.statusCode() == OK && "STREAM_END".equals(r.message())));
             }
         }
 
@@ -125,7 +125,7 @@ class AudioStreamerTest {
         @DisplayName("endStream() should send STREAM_END signal explicitly")
         void testEndStreamSendsStreamEnd() throws IOException {
             audioStreamer.endStream();
-            verify(senderMock).sendResponse(argThat(r -> r.statusCode() == 200 && "STREAM_END".equals(r.message())));
+            verify(senderMock).sendResponse(argThat(r -> r.statusCode() == OK && "STREAM_END".equals(r.message())));
         }
     }
 

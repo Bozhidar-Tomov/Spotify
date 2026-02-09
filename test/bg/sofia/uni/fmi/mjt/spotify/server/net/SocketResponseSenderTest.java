@@ -38,7 +38,7 @@ public class SocketResponseSenderTest {
     void testSendResponseThrowsIOExceptionWhenChannelFails() throws IOException {
         when(socketChannelMock.write(any(ByteBuffer.class))).thenThrow(new IOException("Connection reset"));
 
-        assertThrows(IOException.class, () -> responseSender.sendResponse(new Response(400, "fail", null)),
+        assertThrows(IOException.class, () -> responseSender.sendResponse(new Response(BAD_REQUEST, "fail", null)),
                 "Should propagate IOException from SocketChannel");
     }
 

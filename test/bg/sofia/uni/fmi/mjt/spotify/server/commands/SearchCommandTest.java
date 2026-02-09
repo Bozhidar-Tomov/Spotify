@@ -31,7 +31,7 @@ public class SearchCommandTest {
     @Test
     void testExecuteInvalidArgsCount() {
         Response response = command.execute(List.of(), systemMock);
-        assertEquals(400, response.statusCode());
+        assertEquals(BAD_REQUEST, response.statusCode());
         assertEquals("Usage: search <word_1> ... <word_N>", response.message());
     }
 
@@ -39,14 +39,14 @@ public class SearchCommandTest {
     void testExecuteSystemNotRunning() {
         when(systemMock.isRunning()).thenReturn(false);
         Response response = command.execute(List.of("word"), systemMock);
-        assertEquals(500, response.statusCode());
+        assertEquals(INTERNAL_SERVER_ERROR, response.statusCode());
     }
 
     @Test
     void testExecuteNoTracksFound() {
         when(systemMock.search(List.of("word"))).thenReturn(Collections.emptyList());
         Response response = command.execute(List.of("word"), systemMock);
-        assertEquals(200, response.statusCode());
+        assertEquals(OK, response.statusCode());
         assertEquals("No tracks found.", response.message());
     }
 
@@ -55,7 +55,7 @@ public class SearchCommandTest {
         Track track = new Track(null);
         when(systemMock.search(List.of("word"))).thenReturn(List.of(track));
         Response response = command.execute(List.of("word"), systemMock);
-        assertEquals(200, response.statusCode());
+        assertEquals(OK, response.statusCode());
         assertEquals("Found 1 tracks.", response.message());
     }
 }

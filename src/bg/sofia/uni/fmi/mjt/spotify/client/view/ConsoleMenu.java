@@ -47,20 +47,21 @@ public final class ConsoleMenu {
             return;
         }
 
-        final String LINE = "----------------------------------------------------------------";
-        final String FORMAT = "| %-4s | %-25s | %-25s |%n";
+        final String line = "----------------------------------------------------------------";
+        final int fieldLen = 25;
+        final String format = "| %-4s | %-" + fieldLen + "s | %-" + fieldLen + "s |%n";
 
-        System.out.println("\n" + LINE);
-        System.out.printf(FORMAT, "#", "Title", "Artist");
-        System.out.println(LINE);
+        System.out.println("\n" + line);
+        System.out.printf(format, "#", "Title", "Artist");
+        System.out.println(line);
 
         int row = 1;
         for (Object item : collection) {
             String[] details = getDetails(item);
-            System.out.printf(FORMAT, row++, truncate(details[0], 25), truncate(details[1], 25));
+            System.out.printf(format, row++, truncate(details[0], fieldLen), truncate(details[1], fieldLen));
         }
 
-        System.out.println(LINE + "\n");
+        System.out.println(line + "\n");
     }
 
     private static String[] getDetails(Object item) {
@@ -72,8 +73,9 @@ public final class ConsoleMenu {
     }
 
     private static String truncate(String text, int maxLength) {
+        final int numberPoints = 3;
         if (text == null)
             return "N/A";
-        return text.length() <= maxLength ? text : text.substring(0, maxLength - 3) + "...";
+        return text.length() <= maxLength ? text : text.substring(0, maxLength - numberPoints) + "...";
     }
 }

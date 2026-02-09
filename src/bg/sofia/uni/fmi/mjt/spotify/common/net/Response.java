@@ -6,7 +6,9 @@ public record Response(
     int statusCode,
     String message,
     Payload payload) implements Serializable {
-    public static Response err(){
-        return new Response(500, "Internal server error.", null);
-        }
+        
+    public static Response err() {
+        final int errCode = INTERNAL_SERVER_ERROR;
+        return new Response(errCode, "Internal server error.", null);
     }
+}

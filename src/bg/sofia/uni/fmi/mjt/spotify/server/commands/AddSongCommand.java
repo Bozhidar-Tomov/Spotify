@@ -14,7 +14,7 @@ public class AddSongCommand implements Command {
     @Override
     public Response execute(List<String> args, SpotifySystem system, ResponseSender client) {
         if (args.size() != 2) {
-            return new Response(400, "Usage: add-song-to <playlist_name> <song_name>", null);
+            return new Response(BAD_REQUEST, "Usage: add-song-to <playlist_name> <song_name>", null);
         }
 
         if (system == null || !system.isRunning()) {
@@ -26,15 +26,15 @@ public class AddSongCommand implements Command {
 
         try {
             system.addSongToPlaylist(playlistName, songTitle, client);
-            return new Response(200, "Song added to playlist.", null);
+            return new Response(OK, "Song added to playlist.", null);
         } catch (ValidationException e) {
-            return new Response(400, "Request: " + e.getMessage(), null);
+            return new Response(BAD_REQUEST, "Request: " + e.getMessage(), null);
         } catch (AuthenticationException e) {
-            return new Response(401, "Auth: " + e.getMessage(), null);
+            return new Response(UNAUTHORIZED, "Auth: " + e.getMessage(), null);
         } catch (SourceNotFoundException e) {
-            return new Response(404, "Missing: " + e.getMessage(), null);
+            return new Response(NOT_FOUND, "Missing: " + e.getMessage(), null);
         } catch (SourceAlreadyExistsException | AmbiguousSourceException e) {
-            return new Response(409, "Conflict: " + e.getMessage(), null);
+            return new Response(CONFLICT, "Conflict: " + e.getMessage(), null);
         } catch (Exception e) {
             return Response.err();
         }

@@ -15,7 +15,7 @@ public class LoginCommand implements Command {
     @Override
     public Response execute(List<String> args, SpotifySystem system, ResponseSender client) {
         if (args.size() != 2) {
-            return new Response(400, "Usage: login <email> <password>", null);
+            return new Response(BAD_REQUEST, "Usage: login <email> <password>", null);
         }
 
         if (system == null || !system.isRunning()) {
@@ -27,9 +27,9 @@ public class LoginCommand implements Command {
 
         try {
             UserDTO user = system.login(email, password, client);
-            return new Response(200, "Successful login.", new UserDtoPayload(user));
+            return new Response(OK, "Successful login.", new UserDtoPayload(user));
         } catch (ValidationException | AuthenticationException e) {
-            return new Response(401, "Login failed: " + e.getMessage(), null);
+            return new Response(UNAUTHORIZED, "Login failed: " + e.getMessage(), null);
         } catch (InternalSystemException e) {
             return Response.err();
         }

@@ -24,7 +24,10 @@ public class SpotifyClient {
     private AudioPlayer audioPlayer;
 
     public void start(int port) throws IOException {
-        if (port < 0 || port > 65535) {
+        final int minPortNumber = 0;
+        final int maxPortNumber = 65535;
+
+        if (port < minPortNumber || port > maxPortNumber) {
             throw new IllegalArgumentException("Invalid port number " + port);
         }
 
@@ -45,7 +48,7 @@ public class SpotifyClient {
         executorListener.execute(new ResponseHandler(socketChannel, audioPlayer, this));
 
         System.out.println("Connected.");
-    };
+    }
 
     public void stop() {
         System.out.println("Disconnecting server...");
@@ -67,7 +70,7 @@ public class SpotifyClient {
         }
 
         System.out.println("Disconnected.");
-    };
+    }
 
     public void setUser(UserDTO user) {
         this.user = user;
@@ -97,5 +100,5 @@ public class SpotifyClient {
         } catch (Exception e) {
             System.err.println("Error sending message: " + e.getMessage());
         }
-    };
+    }
 }

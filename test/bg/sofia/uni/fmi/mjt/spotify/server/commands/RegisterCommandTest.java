@@ -32,7 +32,7 @@ public class RegisterCommandTest {
     @Test
     void testExecuteInvalidArgsCount() {
         Response response = command.execute(List.of("email"), systemMock);
-        assertEquals(400, response.statusCode());
+        assertEquals(BAD_REQUEST, response.statusCode());
         assertEquals("Usage: register <email> <password>", response.message());
     }
 
@@ -40,14 +40,14 @@ public class RegisterCommandTest {
     void testExecuteSystemNotRunning() {
         when(systemMock.isRunning()).thenReturn(false);
         Response response = command.execute(List.of("email", "pass"), systemMock);
-        assertEquals(500, response.statusCode());
+        assertEquals(INTERNAL_SERVER_ERROR, response.statusCode());
     }
 
     @Test
     void testExecuteSuccess() throws Exception {
         Response response = command.execute(List.of("email", "pass"), systemMock);
         verify(systemMock).registerUser("email", "pass");
-        assertEquals(200, response.statusCode());
+        assertEquals(OK, response.statusCode());
         assertEquals("Successful register. Now you can login", response.message());
     }
 
@@ -55,7 +55,7 @@ public class RegisterCommandTest {
     void testExecuteValidationException() throws Exception {
         doThrow(new ValidationException("Error")).when(systemMock).registerUser("email", "pass");
         Response response = command.execute(List.of("email", "pass"), systemMock);
-        assertEquals(401, response.statusCode());
+        assertEquals(UNAUTHORIZED, response.statusCode());
         assertEquals("Register failed: Error", response.message());
     }
 }

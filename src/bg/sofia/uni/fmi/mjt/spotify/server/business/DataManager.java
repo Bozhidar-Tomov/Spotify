@@ -5,7 +5,6 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.Files;
@@ -26,7 +25,7 @@ import bg.sofia.uni.fmi.mjt.spotify.server.models.UserEntity;
 import bg.sofia.uni.fmi.mjt.spotify.server.models.UserEntityWrapper;
 
 public final class DataManager {
-    private static final Gson gson = new Gson();
+    private static final Gson GSON = new Gson();
     private static Path rootDataDir = Path.of("./");
     private static Path usersFile = rootDataDir.resolve("activeUsers.bin");
     private static Path playlistsFile = rootDataDir.resolve("playlists.json");
@@ -51,7 +50,7 @@ public final class DataManager {
                 StandardOpenOption.CREATE,
                 StandardOpenOption.WRITE,
                 StandardOpenOption.TRUNCATE_EXISTING)) {
-            gson.toJson(data, writer);
+            GSON.toJson(data, writer);
         }
     }
 
@@ -69,7 +68,7 @@ public final class DataManager {
         }
 
         try (BufferedReader reader = Files.newBufferedReader(path)) {
-            DataWrapper<T> dataRead = gson.fromJson(reader, wrapperClass);
+            DataWrapper<T> dataRead = GSON.fromJson(reader, wrapperClass);
 
             if (dataRead == null || dataRead.data() == null) {
                 throw new IOException("JSON structure in " + path.getFileName() + " is invalid or missing data.");
@@ -138,38 +137,33 @@ public final class DataManager {
     }
 
     public static void loadUsers(Map<String, UserEntity> usersByEmail) throws IOException {
-        if (usersByEmail == null) {
+        if (usersByEmail == null)
             throw new IllegalArgumentException("Target map cannot be null");
-        }
-
-        if (!Files.exists(usersFile)) {
+        if (!Files.exists(usersFile))
             return;
-        }
 
-        try (InputStream fis = Files.newInputStream(usersFile);
-                BufferedInputStream bis = new BufferedInputStream(fis);
-                ObjectInputStream ois = new ObjectInputStream(bis)) {
-
+        try (ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(Files.newInputStream(usersFile)))) {
             Object data = ois.readObject();
 
             if (data instanceof UserEntityWrapper wrapper) {
                 Map<String, UserEntity> loadedData = wrapper.data();
-
-                for (Map.Entry<String, UserEntity> entry : loadedData.entrySet()) {
-                    UserEntity user = entry.getValue();
-                    if (entry.getKey() == null || user == null || user.email() == null || user.password() == null) {
-                        throw new IOException("Data corrupted - null fields.");
-                    }
-                }
-
+                validateUserData(loadedData);
                 usersByEmail.putAll(loadedData);
             } else {
-                throw new IOException("Unexpected data format: Expected UserEntityWrapper but found " +
-                        (data == null ? "null" : data.getClass().getName()));
+                String type = (data == null) ? "null" : data.getClass().getName();
+                throw new IOException("Unexpected data format: Expected UserEntityWrapper but found " + type);
             }
-
         } catch (ClassNotFoundException e) {
             throw new IOException("Class definition not found during deserialization", e);
+        }
+    }
+
+    private static void validateUserData(Map<String, UserEntity> data) throws IOException {
+        for (Map.Entry<String, UserEntity> entry : data.entrySet()) {
+            UserEntity user = entry.getValue();
+            if (entry.getKey() == null || user == null || user.email() == null || user.password() == null) {
+                throw new IOException("Data corrupted - null fields.");
+            }
         }
     }
 

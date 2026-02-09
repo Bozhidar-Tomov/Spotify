@@ -15,8 +15,9 @@ public final class PasswordHandler {
     }
 
     public static Password hashPassword(String password) throws NoSuchAlgorithmException {
+        final int saltSize = 32;
         SecureRandom random = new SecureRandom();
-        byte[] salt = new byte[32];
+        byte[] salt = new byte[saltSize];
         random.nextBytes(salt);
 
         byte[] hash = generateHash(password, salt, ITERATIONS);

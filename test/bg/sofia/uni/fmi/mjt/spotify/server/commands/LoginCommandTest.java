@@ -36,7 +36,7 @@ public class LoginCommandTest {
     @Test
     void testExecuteInvalidArgsCount() {
         Response response = command.execute(List.of("email"), systemMock, clientMock);
-        assertEquals(400, response.statusCode());
+        assertEquals(BAD_REQUEST, response.statusCode());
         assertEquals("Usage: login <email> <password>", response.message());
     }
 
@@ -44,7 +44,7 @@ public class LoginCommandTest {
     void testExecuteSystemNotRunning() {
         when(systemMock.isRunning()).thenReturn(false);
         Response response = command.execute(List.of("email", "pass"), systemMock, clientMock);
-        assertEquals(500, response.statusCode());
+        assertEquals(INTERNAL_SERVER_ERROR, response.statusCode());
     }
 
     @Test
@@ -54,7 +54,7 @@ public class LoginCommandTest {
 
         Response response = command.execute(List.of("email", "pass"), systemMock, clientMock);
 
-        assertEquals(200, response.statusCode());
+        assertEquals(OK, response.statusCode());
         assertEquals("Successful login.", response.message());
     }
 
@@ -62,7 +62,7 @@ public class LoginCommandTest {
     void testExecuteAuthenticationException() throws Exception {
         when(systemMock.login("email", "pass", clientMock)).thenThrow(new AuthenticationException("Invalid"));
         Response response = command.execute(List.of("email", "pass"), systemMock, clientMock);
-        assertEquals(401, response.statusCode());
+        assertEquals(UNAUTHORIZED, response.statusCode());
         assertEquals("Login failed: Invalid", response.message());
     }
 }

@@ -12,34 +12,30 @@ public class CurrentTopTracksCommand implements Command {
     @Override
     public Response execute(List<String> args, SpotifySystem system) {
         if (args.size() != 1) {
-            return new Response(400, "Usage: top <number>", null);
+            return new Response(BAD_REQUEST, "Usage: top <number>", null);
         }
 
         if (system == null || !system.isRunning()) {
             return Response.err();
         }
-
         long n;
-
         try {
             n = Long.parseLong(args.getFirst());
             if (n <= 0) {
-                return new Response(400, "Must be positive integer.", null);
+                return new Response(BAD_REQUEST, "Must be positive integer.", null);
             }
         } catch (NumberFormatException e) {
-            return new Response(400,
+            return new Response(BAD_REQUEST,
                 String.format("Invalid number format: '%s'", args.getFirst()),
                 null);
         }
-
         try {
             List<Track> topTracks = system.topCurrentPlayingTracks(n);
             
             if (topTracks == null || topTracks.isEmpty()) {
-                return new Response(200, "No tracks are currently being played.", null);
+                return new Response(OK, "No tracks are currently being played.", null);
             }
-
-            return new Response(200, "OK", new CollectionPayload<>(topTracks));
+            return new Response(OK, "OK", new CollectionPayload<>(topTracks));
         } catch (InternalSystemException e) {
             return Response.err();
         }

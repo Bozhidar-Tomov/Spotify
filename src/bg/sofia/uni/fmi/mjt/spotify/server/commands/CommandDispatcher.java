@@ -8,15 +8,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 public final class CommandDispatcher {
+    static final int NOT_FOUND = 404;
+    
     public static Response dispatch(String input, SpotifySystem system, ResponseSender client) {
         if (input == null || input.strip().isEmpty()) {
-            return new Response(404, "No command provided", null);
+            return new Response(NOT_FOUND, "No command provided", null);
         }
 
         List<String> tokens = parse(input);
 
         if (tokens.isEmpty()) {
-            return new Response(404, "No command provided", null);
+            return new Response(NOT_FOUND, "No command provided", null);
         }
 
         String commandName = tokens.get(0);
@@ -24,7 +26,7 @@ public final class CommandDispatcher {
 
         Command command = CommandFactory.createCommand(commandName);
         if (command == null) {
-            return new Response(404, "Command '" + commandName + "' not found.", null);
+            return new Response(NOT_FOUND, "Command '" + commandName + "' not found.", null);
         }
 
         return command.execute(args, system, client);

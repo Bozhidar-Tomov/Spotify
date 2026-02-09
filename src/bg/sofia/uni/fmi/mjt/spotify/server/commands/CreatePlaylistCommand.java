@@ -16,7 +16,7 @@ public class CreatePlaylistCommand implements Command {
     @Override
     public Response execute(List<String> args, SpotifySystem system, ResponseSender client) {
         if (args == null || args.size() != 1) {
-            return new Response(400, "Usage: create-playlist <playlist_name>", null);
+            return new Response(BAD_REQUEST, "Usage: create-playlist <playlist_name>", null);
         }
 
         if (system == null || !system.isRunning()) {
@@ -27,15 +27,15 @@ public class CreatePlaylistCommand implements Command {
 
         try {
             UserDTO user = system.createPlaylist(playlistName, client);
-            return new Response(200, "Playlist created.", new UserDtoPayload(user));
-        } catch(ValidationException e){
-            return new Response(400, "Request: " + e.getMessage(), null);
-        } catch(AuthenticationException e){
-            return new Response(401, "Auth: " + e.getMessage(), null);
-        } catch(SourceNotFoundException e){
-            return new Response(404, "Missing: " + e.getMessage(), null);
-        } catch(SourceAlreadyExistsException | AmbiguousSourceException e){
-            return new Response(409, "Conflict: " + e.getMessage(), null);
+            return new Response(OK, "Playlist created.", new UserDtoPayload(user));
+        } catch (ValidationException e){
+            return new Response(BAD_REQUEST, "Request: " + e.getMessage(), null);
+        } catch (AuthenticationException e){
+            return new Response(UNAUTHORIZED, "Auth: " + e.getMessage(), null);
+        } catch (SourceNotFoundException e){
+            return new Response(NOT_FOUND, "Missing: " + e.getMessage(), null);
+        } catch (SourceAlreadyExistsException | AmbiguousSourceException e){
+            return new Response(CONFLICT, "Conflict: " + e.getMessage(), null);
         } catch (Exception e) {
             return Response.err();
         }

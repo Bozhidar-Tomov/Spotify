@@ -59,7 +59,6 @@ public final class SpotifySystem {
         }
     };
 
-    // TODO: make initial lists hashmaps?
     private final Map<String, UserEntity> usersByEmail = new ConcurrentHashMap<>();
     private final Map<String, Set<Playlist>> playlistsByEmail = new ConcurrentHashMap<>();
     private final Map<String, List<Track>> tracksByTitle = new ConcurrentHashMap<>();
@@ -95,9 +94,11 @@ public final class SpotifySystem {
     }
 
     public void start(int port) throws IOException {
+        final int minPortNumber = 0;
+        final int maxPortNumber = 65535;
         System.out.println("SpotifySystem: Booting system...");
 
-        if (port < 0 || port > 65535) {
+        if (port < minPortNumber || port > maxPortNumber) {
             throw new IllegalArgumentException("Invalid port: " + port);
         }
 
@@ -169,7 +170,6 @@ public final class SpotifySystem {
             throw new SourceNotFoundException("Song '" + title + "' not found.");
         }
 
-        // TODO: add specification by artist or ID
         if (tracks.size() != 1) {
             throw new AmbiguousSourceException("Multiple songs with title '" + title + "' found");
         }
@@ -199,9 +199,6 @@ public final class SpotifySystem {
 
         return playlist;
     }
-
-    // TODO: move the logic below in separate classes, away from SpotifySystem to
-    // avoid God Object
 
     public void registerUser(String email, String password) {
         if (email == null || password == null || email.isBlank() || password.isBlank()) {
@@ -248,31 +245,23 @@ public final class SpotifySystem {
         }
 
         String userEmail = getUserEmail(client);
-
         if (userEmail == null) {
             throw new AuthenticationException("You must be logged in to create a playlist.");
         }
-
         UserEntity user = usersByEmail.get(userEmail);
         if (user == null) {
             throw new SourceNotFoundException("User not found.");
         }
-
         playlistsByEmail.compute(userEmail, (email, playlists) -> {
             if (playlists == null) {
-                playlists = new HashSet<>();
-                playlists.add(new Playlist(playlistName, email));
+                (playlists = new HashSet<>()).add(new Playlist(playlistName, email));
                 user.addPlaylist(playlistName);
                 return playlists;
             }
-
-            boolean exists = playlists.stream()
-                    .anyMatch(p -> p.name().equals(playlistName));
-
+            boolean exists = playlists.stream().anyMatch(p -> p.name().equals(playlistName));
             if (exists) {
                 throw new SourceAlreadyExistsException("Playlist '" + playlistName + "' already exists.");
             }
-
             playlists.add(new Playlist(playlistName, email));
             user.addPlaylist(playlistName);
             return playlists;

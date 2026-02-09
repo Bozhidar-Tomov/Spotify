@@ -64,7 +64,7 @@ class ResponseHandlerTest {
     @Test
     void testHandleAudioFormat() throws Exception {
         AudioFormat format = new AudioFormat(44100, 16, 2, true, false);
-        Response response = new Response(200, "OK", AudioFormatPayload.from(format));
+        Response response = new Response(OK, "OK", AudioFormatPayload.from(format));
 
         mockServerResponse(response);
         responseHandler.run();
@@ -75,7 +75,7 @@ class ResponseHandlerTest {
     @Test
     void testHandleUserDto() throws Exception {
         UserDTO user = new UserDTO("test@fmi.bg", Set.of());
-        Response response = new Response(200, "Welcome", new UserDtoPayload(user));
+        Response response = new Response(OK, "Welcome", new UserDtoPayload(user));
 
         mockServerResponse(response);
         responseHandler.run();
@@ -86,7 +86,7 @@ class ResponseHandlerTest {
     @Test
     void testHandleAudioStream() throws Exception {
         byte[] chunk = { 0, 1, 0, 1 };
-        Response response = new Response(200, "STREAM", new BinaryPayload(chunk));
+        Response response = new Response(OK, "STREAM", new BinaryPayload(chunk));
 
         when(audioPlayer.isActive()).thenReturn(true);
         mockServerResponse(response);
@@ -97,7 +97,7 @@ class ResponseHandlerTest {
 
     @Test
     void testHandleStreamEnd() throws Exception {
-        Response response = new Response(200, "STREAM_END", null);
+        Response response = new Response(OK, "STREAM_END", null);
 
         mockServerResponse(response);
         responseHandler.run();

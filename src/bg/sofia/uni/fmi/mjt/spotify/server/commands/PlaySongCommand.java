@@ -17,7 +17,7 @@ public class PlaySongCommand implements Command {
     @Override
     public Response execute(List<String> args, SpotifySystem system, ResponseSender client) {
         if (args == null || args.size() != 1) {
-            return new Response(400, "Usage: play <song name>", null);
+            return new Response(BAD_REQUEST, "Usage: play <song name>", null);
         }
 
         if (client == null || system == null || !system.isRunning()) {
@@ -30,13 +30,13 @@ public class PlaySongCommand implements Command {
             system.streamTrack(songTitle, client);
             return null;
         } catch (ValidationException e) {
-            return new Response(400, "Request: " + e.getMessage(), null);
+            return new Response(BAD_REQUEST, "Request: " + e.getMessage(), null);
         } catch (AuthenticationException e) {
-            return new Response(401, "Auth: " + e.getMessage(), null);
+            return new Response(UNAUTHORIZED, "Auth: " + e.getMessage(), null);
         } catch (SourceNotFoundException e) {
-            return new Response(404, "Missing: " + e.getMessage(), null);
+            return new Response(NOT_FOUND, "Missing: " + e.getMessage(), null);
         } catch (SourceAlreadyExistsException | AmbiguousSourceException e) {
-            return new Response(409, "Conflict: " + e.getMessage(), null);
+            return new Response(CONFLICT, "Conflict: " + e.getMessage(), null);
         } catch (InternalSystemException e) {
             return Response.err();
         } catch (Exception e) {

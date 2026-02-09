@@ -19,7 +19,7 @@ public class ShowPlaylistCommand implements Command {
         }
 
         if (args == null || args.size() != 1) {
-            return new Response(400, "Usage: show-playlist <name_of_the_playlist>", null);
+            return new Response(BAD_REQUEST, "Usage: show-playlist <name_of_the_playlist>", null);
         }
 
         String playlistName = args.getFirst();
@@ -28,12 +28,12 @@ public class ShowPlaylistCommand implements Command {
             List<Track> tracks = system.getPlaylistTracks(playlistName, client);
 
             if (tracks == null || tracks.isEmpty()) {
-                return new Response(200, "Playlist '" + playlistName + "' is empty.", null);
+                return new Response(OK, "Playlist '" + playlistName + "' is empty.", null);
             }
 
-            return new Response(200, "OK", new CollectionPayload<>(tracks));
+            return new Response(OK, "OK", new CollectionPayload<>(tracks));
         } catch (ValidationException e) {
-            return new Response(400, "Request: " + e.getMessage(), null);
+            return new Response(BAD_REQUEST, "Request: " + e.getMessage(), null);
         } catch (InternalSystemException e) {
             return Response.err();
         } catch (SpotifyException e) {
