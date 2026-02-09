@@ -24,6 +24,7 @@ public final class ConsoleMenu {
                    - login <email> <password>
                    - search <words>
                    - top <number>
+                   - top-global <number>
                    - create-playlist <name>
                    - add-song-to <playlist_name> <song>
                    - show-playlist <playlist_name>
