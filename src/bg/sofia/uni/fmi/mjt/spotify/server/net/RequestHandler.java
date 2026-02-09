@@ -39,8 +39,6 @@ public class RequestHandler implements Runnable {
         buffer.get(clientData);
         String request = new String(clientData, StandardCharsets.UTF_8).strip();
 
-        // HACK
-        System.out.println("NEW command ");
         return CommandDispatcher.dispatch(request, system, sender);
     }
 
@@ -48,7 +46,7 @@ public class RequestHandler implements Runnable {
     public void run() {
         clientChannel = (SocketChannel) key.channel();
         buffer = (ByteBuffer) key.attachment();
-        ResponseSender sender = new SocketResponseSender(clientChannel);
+        ResponseSender sender = createResponseSender(clientChannel);
 
         try {
             Response response = parseRequest(sender);
@@ -85,5 +83,9 @@ public class RequestHandler implements Runnable {
         } catch (IOException ex) {
             System.err.println("Error closing connection: " + ex.getMessage());
         }
+    }
+
+    ResponseSender createResponseSender(SocketChannel clientChannel) {
+        return new SocketResponseSender(clientChannel);
     }
 }
